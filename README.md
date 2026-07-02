@@ -30,12 +30,17 @@ An **environment model** (a capable LLM) serves as the generative engine orchest
 ├── data/
 │   ├── apartment/          # Example world: modern apartment complex
 │   ├── school/             # Example world: school setting (chinese high school)
+│   ├── world_templates/    # Opt-in director-world templates
 │   └── persona_template/   # Template for persona data format
+├── docs/
+│   └── director_world.md   # Template/director-event/Godot backend notes
 ├── scripts/
 │   ├── run_world.py        # Main entry point for running a simulation
+│   ├── director_world.py   # Inspect/create template-driven director worlds
 │   ├── build_rft_data.py   # Compute advantages + build RFT training data
 │   ├── compute_metrics.py  # Quantitative per-agent / per-year metrics for a run
 │   ├── time_analysis.py    # Per-week wall-clock timing for a run
+├── tests/                  # Focused unit tests for reusable backend logic
 └── src/
     ├── agents/             # Role-playing agent: prompts, context, memory
     └── world/              # Simulation engine: scheduling, activities, rewards
@@ -74,6 +79,42 @@ To override the world at runtime:
 ```bash
 python scripts/run_world.py --world apartment
 ```
+
+## Director-Style World Backend
+
+Agentopia also includes an opt-in backend layer for building creator-facing
+"director-style cultivation worlds." This layer does not replace the research
+simulation runner. It adds structured contracts for future game or visualization
+clients such as Godot:
+
+- `data/world_templates/school-classroom/` defines the first reusable template:
+  world fields, character fields, role archetypes, locations, join modes,
+  director event types, prompt fragments, and visualization hints.
+- `src/world/director.py` validates and persists player-authored interventions
+  as `DirectorEvent` JSONL records. Events can create context such as rumors,
+  pressure, opportunities, arranged encounters, campus incidents, or arrivals,
+  but they cannot directly edit internal character state.
+- `src/world/template_world.py` can instantiate a template world and initialize
+  new characters with profile, state, memory, contact, schedule, and location
+  files.
+- `src/world/visualization.py` writes client-friendly snapshots such as
+  `visualization/current.json`, containing timeline events, character summaries,
+  relationship summaries, location activity, and director event results.
+
+Inspect the school template schema:
+
+```bash
+python scripts/director_world.py schema school-classroom
+```
+
+Run the focused backend tests:
+
+```bash
+python -m unittest tests.test_template_director_world
+```
+
+See `docs/director_world.md` for the data contracts intended for future Godot
+integration.
 
 ## Model Configuration
 
@@ -172,4 +213,4 @@ These skills are optional analysis helpers; they are not required to run a simul
 
 ## License
 
-This project is released under the MIT License.
+This project is released under the MIT License. See `LICENSE` for details.

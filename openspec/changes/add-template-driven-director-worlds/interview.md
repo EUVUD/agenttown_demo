@@ -149,3 +149,24 @@ Godot 不应该直接读内部 JSONL、prompt、scratchpad。后端应该提供�
 - 生成 visualization snapshot，为 Godot 做稳定数据接口。
 - 再做一个很薄的 Godot 原型，只负责显示班级地图、角色状态、关系线和事件时间线。
 - 最后再考虑更多模板、玩家自定义编辑器、成本优化和更复杂的叙事系统。
+
+## 收尾更新
+
+### 做了什么
+
+- 更新了 `README.md`，把新增的 director-style world backend 写进项目说明中。
+- 在 README 的项目结构里补充了 `data/world_templates/`、`scripts/director_world.py`、`docs/director_world.md` 和 `tests/`。
+- 明确说明该后端是 opt-in：原有 `scripts/run_world.py` 研究模拟入口不被替代。
+- 补充了 `school-classroom` 模板、`DirectorEvent`、角色加入和 `visualization/current.json` 的说明。
+- 新增标准 `LICENSE` 文件，继续使用 MIT License。
+
+### 亮点
+
+- README 现在能同时解释两个层次：原有长期多智能体模拟，以及新增的导演型世界后端。
+- 对外讲项目时更清楚：Godot 未来消费的是稳定 visualization snapshot，而不是内部 JSONL、prompt 或 scratchpad。
+- License 从 README 里一句话变成了标准 MIT 文件，更适合作为完整开源仓库展示。
+
+### 难点
+
+- 要避免把 director-world 后端讲成已经完成的游戏前端，所以 README 使用了 opt-in backend、future clients、future Godot integration 这样的边界表述。
+- 要保持原项目研究方向不被稀释，因此 README 仍然保留原来的 simulation、life reward training 和 analysis skills 结构，只在中间加入新后端章节。
