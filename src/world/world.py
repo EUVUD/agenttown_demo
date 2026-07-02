@@ -287,6 +287,45 @@ class World:
         """Return cached mapping from character name to agent."""
         return self._name2agent
 
+    def add_agent_from_data(self, name: str) -> RoleAgent:
+        """Add a newly materialized persona to the active roster at a safe boundary.
+
+        Director-world character entry creates the persona files first, then calls
+        this method before weekly planning starts. Existing runs keep the old
+        fixed-roster behavior unless this opt-in method is invoked.
+        """
+        if name in self._name2agent:
+            return self._name2agent[name]
+
+        persona_dir = self._persona_root() / name
+        if not persona_dir.exists():
+            raise FileNotFoundError(f"persona not found for new agent: {persona_dir}")
+
+        assignment_path = self._model_assignment_path()
+        if assignment_path.exists():
+            with assignment_path.open("r", encoding="utf-8") as f:
+                assignment = json.load(f)
+        else:
+            assignment = {}
+        if name not in assignment:
+            assignment[name] = self._role_models[len(assignment) % len(self._role_models)]
+            assignment_path.parent.mkdir(parents=True, exist_ok=True)
+            with assignment_path.open("w", encoding="utf-8") as f:
+                json.dump(dict(sorted(assignment.items())), f, indent=2, ensure_ascii=False)
+
+        agent = RoleAgent(
+            name,
+            clock=self.clock,
+            msg_center=self.msg_center,
+            model=assignment[name],
+            world_name=self.data_dir,
+            no_context_engineering=self.no_context_engineering,
+            no_history=self.no_history,
+        )
+        self.agents.append(agent)
+        self._name2agent[name] = agent
+        return agent
+
     def _collect_existing_schedules(self) -> Dict[str, Dict[str, Schedule]]:
         """Collect existing schedules for conflict detection.
 

@@ -1,0 +1,216 @@
+{
+  "id": "school-classroom",
+  "name": "School Classroom",
+  "version": "0.1.0",
+  "description": "A director-style template for a class-based school life simulation.",
+  "time": {
+    "start_year": 2020,
+    "rhythm": "weekly",
+    "week_structure": ["homeroom", "classes", "club_time", "after_school"],
+    "safe_character_entry_stages": ["BEGIN"]
+  },
+  "world_fields": {
+    "required": ["class_name", "school_name"],
+    "optional": ["grade", "homeroom_teacher", "tone", "central_tension"]
+  },
+  "character_fields": {
+    "required": [
+      "name",
+      "role",
+      "gender",
+      "brief_introduction",
+      "appearance_and_impression",
+      "personality",
+      "motivation"
+    ],
+    "optional": [
+      "details",
+      "conflicts",
+      "preferences",
+      "values",
+      "init_skills",
+      "init_assets"
+    ],
+    "by_role": {
+      "student": {
+        "required": [],
+        "optional": ["club", "academic_level", "seat", "known_classmates"]
+      },
+      "teacher": {
+        "required": [],
+        "optional": ["subject", "authority_style"]
+      }
+    }
+  },
+  "role_archetypes": {
+    "student": {
+      "description": "A student who participates in class, peer relationships, clubs, tests, and after-school life.",
+      "position": {
+        "weekly_income": 0,
+        "role": "student",
+        "organization": "School classroom",
+        "type": "non-work",
+        "description": "Full-time student",
+        "weekly_delta_skills": {}
+      },
+      "init_skills": {
+        "study": 50,
+        "communication": 50,
+        "self_management": 50
+      },
+      "talent_scores": {
+        "communication": 50,
+        "creativity": 50,
+        "intelligence": 50,
+        "trustworthiness": 50
+      },
+      "personality_scores": {
+        "confidence": 50,
+        "curiosity": 50,
+        "empathy": 50,
+        "responsibility": 50
+      }
+    },
+    "teacher": {
+      "description": "A teacher who affects classroom climate, school expectations, and student opportunities.",
+      "position": {
+        "weekly_income": 500,
+        "role": "teacher",
+        "organization": "School",
+        "type": "work",
+        "description": "School teacher",
+        "weekly_delta_skills": {}
+      },
+      "init_skills": {
+        "teaching": 80,
+        "communication": 70,
+        "classroom_management": 70
+      },
+      "talent_scores": {
+        "communication": 70,
+        "leadership": 70,
+        "trustworthiness": 65
+      },
+      "personality_scores": {
+        "confidence": 65,
+        "responsibility": 80,
+        "judging": 70
+      }
+    }
+  },
+  "location_archetypes": {
+    "classroom": {
+      "display_name": "Classroom",
+      "size": "large",
+      "description": "The home base of the class where lessons, rumors, conflicts, and ordinary peer contact happen.",
+      "objects": ["blackboard", "desks", "notice board", "cleaning tools"]
+    },
+    "school_gate": {
+      "display_name": "School Gate",
+      "size": "medium",
+      "description": "A busy threshold where arrivals, departures, and chance encounters happen.",
+      "objects": ["gate sign", "security booth", "bike racks"]
+    },
+    "library": {
+      "display_name": "Library",
+      "size": "medium",
+      "description": "A quieter place for study, hiding, private talks, and discovery.",
+      "objects": ["bookshelves", "reading tables", "checkout desk"]
+    },
+    "club_room": {
+      "display_name": "Club Room",
+      "size": "medium",
+      "description": "A flexible after-school space for clubs, projects, alliances, and tension.",
+      "objects": ["folding chairs", "posters", "storage cabinets"]
+    },
+    "playground": {
+      "display_name": "Playground",
+      "size": "large",
+      "description": "An open campus space for sports, group events, isolation, and public scenes.",
+      "objects": ["track", "basketball court", "benches"]
+    }
+  },
+  "director_event_types": {
+    "rumor": {
+      "display_name": "Campus Rumor",
+      "required": ["targets", "visibility", "description"],
+      "visibility": "class",
+      "resolves_to": ["prompt_context", "timeline_event"]
+    },
+    "pressure": {
+      "display_name": "Pressure",
+      "required": ["targets", "intensity", "description"],
+      "visibility": "targeted",
+      "resolves_to": ["prompt_context"]
+    },
+    "opportunity": {
+      "display_name": "Opportunity",
+      "required": ["targets", "description"],
+      "visibility": "class",
+      "resolves_to": ["prompt_context", "timeline_event"]
+    },
+    "arranged_encounter": {
+      "display_name": "Arranged Encounter",
+      "required": ["targets", "locations", "description"],
+      "visibility": "targeted",
+      "resolves_to": ["encounter_candidate"]
+    },
+    "campus_incident": {
+      "display_name": "Campus Incident",
+      "required": ["locations", "description"],
+      "visibility": "public",
+      "resolves_to": ["public_event", "timeline_event"]
+    },
+    "arrival": {
+      "display_name": "Character Arrival",
+      "required": ["targets", "description"],
+      "visibility": "class",
+      "resolves_to": ["arrival_event", "timeline_event"]
+    }
+  },
+  "join_modes": {
+    "transfer_student": {
+      "description": "A student joins the class between weeks as a transfer student.",
+      "roles": ["student"],
+      "safe_stages": ["BEGIN"],
+      "requires_home": true,
+      "starting_location": "classroom"
+    },
+    "new_teacher": {
+      "description": "A teacher joins the school between weeks.",
+      "roles": ["teacher"],
+      "safe_stages": ["BEGIN"],
+      "requires_home": true,
+      "starting_location": "classroom"
+    },
+    "club_guest": {
+      "description": "A temporary visitor appears through club activity.",
+      "roles": ["student", "teacher"],
+      "safe_stages": ["BEGIN"],
+      "requires_home": false,
+      "starting_location": "club_room"
+    },
+    "returning_student": {
+      "description": "A former class member returns and re-enters the relationship network.",
+      "roles": ["student"],
+      "safe_stages": ["BEGIN"],
+      "requires_home": true,
+      "starting_location": "school_gate"
+    }
+  },
+  "default_state": {
+    "vitality": 80,
+    "fulfillment": {
+      "mood": 60,
+      "social": 50,
+      "esteem": 50,
+      "material": 50
+    }
+  },
+  "visualization_hints": {
+    "primary_map_locations": ["classroom", "school_gate", "library", "club_room", "playground"],
+    "character_card_fields": ["name", "role", "brief_introduction", "status_highlights"],
+    "relationship_view": "class_network",
+    "timeline_types": ["director_rumor", "director_opportunity", "character_arrival", "public_event"]
+  }
+}

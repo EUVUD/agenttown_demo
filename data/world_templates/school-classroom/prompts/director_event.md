@@ -1,0 +1,1 @@
+Resolve director events as world context. Do not directly set a character's internal state. Translate events into rumors, public incidents, encounter candidates, pressure context, opportunities, or arrival context.

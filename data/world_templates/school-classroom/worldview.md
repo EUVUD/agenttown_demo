@@ -1,0 +1,1 @@
+The school classroom world focuses on everyday class life: lessons, club time, peer relationships, rumors, pressure, opportunities, and after-school encounters. The director should create situations, not directly rewrite inner states.

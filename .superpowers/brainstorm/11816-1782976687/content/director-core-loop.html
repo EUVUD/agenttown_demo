@@ -1,0 +1,94 @@
+<h2>导演型养成：第一屏应该围绕什么？</h2>
+<p class="subtitle">这是产品核心感的选择。点一个你最想玩的方向，也可以只看完后回到终端说想法。</p>
+
+<div class="cards">
+  <div class="card" data-choice="timeline-director" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. 时间线导演台</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Week 03 | Event Budget | Advance Day</div>
+          <div style="display:grid;grid-template-columns:1.2fr .8fr;gap:12px;margin-top:12px">
+            <div class="placeholder" style="min-height:170px;text-align:left">
+              <strong>World Timeline</strong><br><br>
+              09:00 Public exam pressure rises<br>
+              13:00 Leo avoids rooftop gathering<br>
+              19:00 Ivy plans a small music night<br>
+              22:00 Relationship tension detected
+            </div>
+            <div class="placeholder" style="min-height:170px;text-align:left">
+              <strong>Director Cards</strong><br><br>
+              Seed rumor<br>
+              Offer opportunity<br>
+              Create festival<br>
+              Raise conflict
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>时间线导演台</h3>
+      <p>玩家主要投放事件、调整节奏、观察因果。最适合先把现有模拟产品化。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dollhouse-world" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. 世界沙盘</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Apartment Map | People | Places | Mood</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px">
+            <div class="placeholder" style="min-height:90px">Rooftop<br>3 people</div>
+            <div class="placeholder" style="min-height:90px">Coffee Shop<br>7 people</div>
+            <div class="placeholder" style="min-height:90px">Leo's Home<br>alone</div>
+            <div class="placeholder" style="min-height:90px">Hallway<br>encounter</div>
+            <div class="placeholder" style="min-height:90px">Library<br>event</div>
+            <div class="placeholder" style="min-height:90px">Park<br>quiet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>世界沙盘</h3>
+      <p>玩家像看活的地图，角色在地点间移动和相遇。最贴近 Godot 游戏化。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="relationship-studio" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">C. 关系编剧室</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Relationship Web | Arc | Intervention</div>
+          <div style="display:grid;grid-template-columns:.8fr 1.2fr;gap:12px;margin-top:12px">
+            <div class="placeholder" style="min-height:170px;text-align:left">
+              <strong>Characters</strong><br><br>
+              Leo -> Katie: longing<br>
+              Ivy -> Leo: curiosity<br>
+              Simon -> Leo: mentor<br>
+              Alice -> Leo: trust
+            </div>
+            <div class="placeholder" style="min-height:170px;text-align:left">
+              <strong>Arc Tools</strong><br><br>
+              Nudge confession<br>
+              Reveal secret<br>
+              Repair friendship<br>
+              Create rivalry
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>关系编剧室</h3>
+      <p>玩家主要经营人物关系和剧情弧线。最像“AI 角色剧场/养成剧”。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>我的初步推荐</h3>
+  <p>先以 <strong>A 时间线导演台</strong> 作为核心，吸收 B 的地图视角和 C 的关系工具。这样最容易降低 token 成本：先用结构化事件驱动模拟，再在关键剧情点调用 LLM。</p>
+</div>
