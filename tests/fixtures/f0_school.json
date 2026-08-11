@@ -1,0 +1,27 @@
+{
+  "fixture_version": 1,
+  "world": {
+    "id": "f0-school",
+    "name": "F0 School"
+  },
+  "protagonist": {
+    "id": "protagonist",
+    "name": "Alex Park",
+    "role": "student"
+  },
+  "npcs": [
+    {"id": "npc-01", "name": "Blair Chen", "role": "student"},
+    {"id": "npc-02", "name": "Casey Diaz", "role": "student"},
+    {"id": "npc-03", "name": "Devon Ellis", "role": "student"},
+    {"id": "npc-04", "name": "Emery Ford", "role": "student"},
+    {"id": "npc-05", "name": "Finley Gray", "role": "student"},
+    {"id": "npc-06", "name": "Harper Ito", "role": "teacher"}
+  ],
+  "locations": [
+    {"id": "classroom", "name": "Classroom"},
+    {"id": "library", "name": "Library"},
+    {"id": "cafeteria", "name": "Cafeteria"},
+    {"id": "courtyard", "name": "Courtyard"},
+    {"id": "gym", "name": "Gym"}
+  ]
+}
