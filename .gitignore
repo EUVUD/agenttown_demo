@@ -17,3 +17,7 @@ build/
 
 # OS
 .DS_Store
+
+# Generated Godot state and GdUnit4 reports
+godot/.godot/
+godot/reports/

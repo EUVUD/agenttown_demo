@@ -1,0 +1,17 @@
+; Engine configuration file.
+; Edit through the Godot editor when project settings change.
+config_version=5
+
+[application]
+
+config/name="Tomorrow's Reply"
+run/main_scene="res://scenes/bootstrap.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gdUnit4/plugin.cfg")
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

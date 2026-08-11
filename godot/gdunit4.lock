@@ -1,0 +1,5 @@
+[gdunit4]
+version = "6.2.0"
+source_url = "https://github.com/godot-gdunit-labs/gdUnit4/tree/v6.2.0"
+archive_url = "https://api.github.com/repos/godot-gdunit-labs/gdUnit4/zipball/v6.2.0"
+sha256 = "3959047f02a1baccf46690757119d92ae804229c797680e2e815f758226c1793"
