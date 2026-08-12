@@ -1,0 +1,53 @@
+name: Create release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  release:
+    name: Create GitHub Release
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify that the tag descends from main
+        env:
+          DEFAULT_BRANCH: main
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          git fetch origin "$DEFAULT_BRANCH"
+          git merge-base --is-ancestor "$RELEASE_SHA" "origin/$DEFAULT_BRANCH"
+
+      - name: Create the GitHub Release
+        uses: actions/github-script@d746ffe35508b1917358783b479e04febd2b8f71 # v9.0.0
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+        with:
+          script: |
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: process.env.RELEASE_TAG,
+              target_commitish: process.env.RELEASE_SHA,
+              generate_release_notes: true,
+            });

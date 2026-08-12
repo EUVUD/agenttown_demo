@@ -116,6 +116,14 @@ python -m unittest tests.test_template_director_world
 See `docs/director_world.md` for the data contracts intended for future Godot
 integration.
 
+## CI/CD
+
+Pull requests to `develop` and changes merged into `develop` run the Python,
+OpenSpec, and Godot test gates through GitHub Actions. Version tags created from
+`main` run the same gates and create a GitHub Release record. See
+[`docs/ci_cd.md`](docs/ci_cd.md) for the complete workflow and maintainer
+release procedure.
+
 ## Model Configuration
 
 Agentopia supports multiple LLM backends. Configure them in `config.json` under `models`:
