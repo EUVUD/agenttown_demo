@@ -65,7 +65,7 @@ python -m pytest tests/e2e -q
 
 ### D1：领域模型与事件契约
 
-- [ ] **D1.1 时间与 ID**：实现世界日、时间槽、事件 ID、版本号和值对象；边界日期和重复 ID 测试通过。
+- [x] **D1.1 时间与 ID**：实现世界日、时间槽、事件 ID、版本号和值对象；边界日期和重复 ID 测试通过。
 - [ ] **D1.2 WorldBlueprintV1**：定义世界设定、主角设定、NPC、地点、规则和版本；合法/非法 JSON fixture 验证通过。
 - [ ] **D1.3 固定小镇适配器**：从 blueprint 生成 1 主角、6–8 NPC、5–8 地点；数量和引用完整性测试通过。
 - [ ] **D1.4 命令/事件 schema**：定义 `CreateWorld`、`PlanDay`、`AdvanceSlot`、`SendMessage`、`SendLetter` 及对应事件；schema 校验拒绝未知必填缺失。
