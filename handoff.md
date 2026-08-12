@@ -2,86 +2,116 @@
 
 ## Current State
 
-The F0 engineering foundation is complete within its declared host scope.
-F0.1 through F0.4 are represented by their archived OpenSpec changes and the
-roadmap checkpoint; do not recreate those artifacts:
+`develop` now includes the F0 playable foundation, fixed CI/CD flow, and D1.1
+time/identity domain slice. The latest confirmed merge is
+[PR #3](https://github.com/EUVUD/agenttown_demo/pull/3), merged into `develop`
+at commit `678bb75689c821981e93d740bb46da3a7e103973`.
 
-- `openspec/changes/archive/2026-08-11-establish-playable-toolchain-baseline/`
-- `openspec/changes/archive/2026-08-11-establish-playable-runtime-skeleton/`
-- `openspec/changes/archive/2026-08-11-add-deterministic-test-doubles/`
+The roadmap marks F0.1 through F0.5, the F0 phase gate, G0, and D1.1 as
+complete in `GAME_DEVELOPMENT_PLAN.md`. G1 is not complete yet; D1.2
+`WorldBlueprintV1` is the next roadmap item.
+
+Important artifacts now present on `develop`:
+
 - `GAME_DEVELOPMENT_PLAN.md`
+- `docs/ci_cd.md`
+- `docs/playable_toolchain.md`
+- `openspec/changes/add-playable-time-and-ids/`
+- `openspec/changes/archive/2026-08-11-establish-playable-toolchain-baseline/`
+- `openspec/specs/playable-toolchain-baseline/spec.md`
+- `server/domain/`
+- `tests/playable/test_time_and_identity.py`
 
-The fixed CI/CD flow is merged into `develop` as commit
-`292ff992da1d4f1641423d2d8ac85b3264f796e8` through
-[PR #2](https://github.com/EUVUD/agenttown_demo/pull/2). Its first GitHub
-Actions run completed successfully:
-[run 31559070167](https://github.com/EUVUD/agenttown_demo/actions/runs/31559070167).
-The implementation and maintainer procedure are documented in
-`docs/ci_cd.md` on `develop`.
+## Implemented D1.1 Behavior
+
+D1.1 added dependency-free playable-domain value objects under `server.domain`:
+
+- `server/domain/time.py`: `WorldDay`, `TimeSlot`, and `WorldTime`. Days start
+  at 1, each day has exactly four neutral slots, `WorldTime` sorts by day then
+  slot, and `WorldTime.next()` rolls day 1 slot 4 to day 2 slot 1.
+- `server/domain/identity.py`: `EventId`, backed by Python 3.14 UUIDv7. It
+  generates, parses, serializes, hashes, and compares event IDs, and rejects
+  non-UUIDv7 values.
+- `server/domain/version.py`: `Version`, a non-negative aggregate version value
+  object. Version 0 represents an empty event stream, and `next()` returns a new
+  incremented value without mutation.
+
+These are pure domain primitives. They do not read SQLite, call model providers,
+advance a real runtime, import `src.world`, or touch Godot. Later slices should
+use them rather than raw integers or strings for time, event ID, and version
+concepts.
 
 ## Decisions That Matter Next
 
-- CI reuses three gates: hash-checked Python tests, strict OpenSpec validation,
-  and vendored GdUnit4 tests on Godot 4.7.1.
-- CI runs for pull requests targeting `develop`, pushes to `develop`, and
-  manual dispatches. A `v*` tag reruns the same gates and creates a GitHub
-  Release only after the tagged commit is verified to descend from `main`.
-- The release is a GitHub Release record, not an artifact deployment. It uses
-  no repository secrets or external deployment credentials; third-party action
-  references are pinned to immutable commits.
-- Windows x86_64 has not been validated. The completed F0 and G0 checkpoints
-  mean stable verification for the declared macOS Apple Silicon and Ubuntu CI
-  scope only; they do not claim Windows support.
-- The playable runtime remains separate from the legacy JSONL simulation. The
-  roadmap contains the authoritative product and architecture decisions.
+- `time.py` is not the world clock service. It only defines the legal time
+  shape and the pure next-time calculation. Runtime command handlers will later
+  decide when to call `WorldTime.next()`, persist the result, and emit events.
+- `EventId` and `Version` are both required. `EventId` answers "is this the same
+  event?" while `Version` answers "where is this event in the aggregate stream?"
+- UUIDv7 was chosen over ULID because CPython 3.14 already provides it in the
+  standard library. No new runtime dependency was added.
+- Time slots remain neutral as `SLOT_1` through `SLOT_4`; localized or
+  fiction-facing labels can be added later without changing persistence.
+- The playable runtime remains isolated from legacy JSONL simulation data until
+  a documented adapter exists.
 
 ## Verification Already Performed
 
-- Local workflow linting, CI-workflow regression tests, the full Python suite,
-  and strict OpenSpec validation passed.
-- Local Godot headless startup and the vendored GdUnit4 test run passed.
-- The first remote CI run passed its Python, OpenSpec, and Godot jobs.
+Before PR #3 was opened and merged:
 
-Exact commands and release/branch-protection procedure are recorded in
-`docs/ci_cd.md`; avoid duplicating or weakening those checks in another
-workflow.
+- `.venv/bin/python -m pytest tests/playable/test_time_and_identity.py -q`
+  passed with 9 tests.
+- `.venv/bin/python -m pytest tests/playable -q` passed with 14 tests.
+- `.venv/bin/python -m pytest -q` passed with 33 tests.
+- `openspec validate add-playable-time-and-ids --strict` passed.
+- `openspec validate --all --strict` passed with 8 items.
+- `git diff --check origin/develop..HEAD` passed.
+
+CI/CD was previously merged through [PR #2](https://github.com/EUVUD/agenttown_demo/pull/2)
+at commit `292ff992da1d4f1641423d2d8ac85b3264f796e8`; its first remote run
+passed. Check the latest GitHub Actions status on `develop` before relying on a
+fresh merged commit.
+
+## OpenSpec Status
+
+`openspec list --json` currently reports `add-playable-time-and-ids` as a
+complete active change with 9/9 tasks done. It has not been archived yet.
+
+Next session should decide whether to archive D1.1 immediately with
+`openspec-archive-change`, or keep it active until the project owner explicitly
+asks for archival. Do not recreate the D1.1 artifacts.
 
 ## Required Follow-up
 
-Configure GitHub branch protection or equivalent rulesets for both `develop`
-and `main`, as described in `docs/ci_cd.md`: require pull requests, require
-the three CI checks, require an up-to-date branch and linear history, and block
-direct and force pushes. This is a repository setting, not something the
-workflow can enforce by itself.
+- Confirm branch protection or repository rulesets are configured for `develop`
+  and `main` as described in `docs/ci_cd.md`.
+- Archive the complete D1.1 OpenSpec change when the user approves.
+- Start D1.2 `WorldBlueprintV1`: define the fixed world blueprint schema,
+  legal/illegal JSON fixtures, and the boundary between creator-facing JSON and
+  runtime domain objects.
+- Keep updating `GAME_DEVELOPMENT_PLAN.md` whenever a roadmap step is fully
+  implemented and its acceptance checks pass.
 
 ## Working Tree and Git
 
-The currently checked-out branch is `feature/f0-playable-foundation`, which is
-behind `origin/develop`. Its dirty worktree is intentionally restored and
-user-owned: `AGENTS.md`, the roadmap, toolchain documentation, OpenSpec
-artifacts, `requirements-dev.txt`, `toolchain.toml`, `src/playable_toolchain.py`,
-and focused baseline tests. Do not reset, clean, or switch it until that work
-has been reviewed or safely stashed.
+This handoff update was prepared from local `develop` after fast-forwarding to
+`origin/develop` commit `678bb75689c821981e93d740bb46da3a7e103973`, then
+creating `feature/update-d1-handoff`.
 
-`stash@{0}` (`codex/pre-ci-cd-2026-08-11`) remains as an extra backup. The
-local `develop` branch is also stale; update it only from a clean worktree.
+Older local stashes still exist and were intentionally left untouched:
 
-## Recommended Next Session
-
-1. Apply the documented GitHub protection settings, then confirm the checks
-   appear as required on a new pull request.
-2. Review and intentionally commit the restored F0 planning/toolchain work as
-   its own milestone; keep it separate from the already merged CI/CD commit.
-3. Start D1.1 as a new OpenSpec change after research and a confirmed planning
-   review. Preserve the JSON fixture, FakeClock, FakeLLM, and temporary SQLite
-   boundaries established in F0.
+- `stash@{0}` on `feature/f0-playable-foundation`: `codex/pre-ci-cd-2026-08-11`
+- `stash@{1}` on `feature/f0-playable-foundation`:
+  `codex/generated-godot-cache-before-feature-migration`
+- `stash@{2}` on `codex/f0-toolchain-baseline`:
+  `codex/pre-feature-migration-2026-08-11`
 
 ## Suggested Skills
 
-- `git-feature-develop-workflow` and `caveman-commit` — safely integrate the
-  restored F0 work and create an atomic milestone commit.
-- `openspec-explore`, `search-first`, and `openspec-propose` — research and
-  frame D1.1 before implementation.
-- `grill-me` — required before executing the D1.1 plan and again before
-  marking it complete.
-- `openspec-apply-change` — implement an approved D1.1 change incrementally.
+- `git-feature-develop-workflow` and `caveman-commit` for any commit, push, PR,
+  rebase, or post-merge cleanup.
+- `openspec-archive-change` if the user approves archiving the completed D1.1
+  change.
+- `search-first`, `grill-me`, `solid`, `openspec-propose`, and
+  `openspec-apply-change` for D1.2 implementation.
+- `openspec-explore` for requirements discussion before locking D1.2 details.
