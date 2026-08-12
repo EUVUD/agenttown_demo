@@ -1,32 +1,52 @@
-# Repository Guidelines
+# Project Instructions
 
-## Project Structure & Module Organization
+## Scope
 
-Agentopia is a Python project for long-term multi-agent life simulation. Core source lives in `src/`: `src/world/` contains simulation orchestration, scheduling, activities, locations, rewards, and run management; `src/agents/` contains role-agent behavior, prompts, context, validation, and data access. Entry points and analysis utilities live in `scripts/`. Scenario assets and generated run data live under `data/`, with base worlds such as `data/school/` and `data/apartment/`. OpenSpec planning artifacts live in `openspec/`.
+- `GAME_DEVELOPMENT_PLAN.md` is the roadmap for the playable Godot game; it is not implemented by the legacy runner.
+- Preserve the behavior and file contracts of `scripts/run_world.py` unless an approved migration explicitly changes them.
+- Keep new playable-runtime state separate from legacy JSONL run data until a documented adapter exists.
 
-Create and keep track of the interview.md documents in the project. Every time you made some important changes and improvements, include it in the interview.md. Structure interview.md as what you have done, the highlights, and the diffculties encountered in the project.
+## Layout
 
-## Build, Test, and Development Commands
+| Area | Purpose |
+|---|---|
+| `src/agents/` | Role-agent behavior, prompts, context, validation, and data access |
+| `src/world/` | Legacy simulation, templates, Director events, and visualization |
+| `scripts/` | CLI entry points and offline analysis tools |
+| `data/world_templates/` | Versioned creator-facing world-template packs |
+| `tests/` | Focused Python tests |
+| `openspec/specs/` | Current behavior specifications |
+| `docs/director_world.md` | Template/Director/Godot snapshot contract |
 
-- `pip install -r requirements.txt`: install runtime dependencies.
-- `cp config.example.json config.json`: create local model/world configuration. Do not commit secrets in `config.json`.
-- `python scripts/run_world.py --world school --max-agents 5 --years 1 --weeks 1`: run a small local simulation smoke test.
-- `python scripts/run_world.py --resume data/<run_dir>`: resume an existing run.
-- `python scripts/compute_metrics.py --data-dir <run_dir>`: compute quantitative run metrics.
-- `python scripts/build_rft_data.py --data-dir <run_dir> --top 0.25`: build RFT samples from a completed run.
+## Commands
 
-## Coding Style & Naming Conventions
+| Task | Command |
+|---|---|
+| Install dependencies | `pip install -r requirements.txt` |
+| Run one focused test module | `python -m pytest tests/test_template_director_world.py -q` |
+| Run all tests | `python -m pytest -q` |
+| Inspect the first template schema | `python scripts/director_world.py schema school-classroom` |
+| Smoke-test the legacy runner | `python scripts/run_world.py --world school --max-agents 5 --years 1 --weeks 1` |
 
-Use Python 3 style with 4-space indentation and type hints where practical. Prefer small, explicit functions and data structures over hidden global state. Keep module names lowercase with underscores, class names in `PascalCase`, and functions/variables in `snake_case`. Follow the existing file-backed JSON/JSONL patterns for simulation state, memory, logs, and generated records.
+## Documentation Language
 
-## Testing Guidelines
+- Write all new or modified project documentation in English, including plans, `README*`, `docs/`, and OpenSpec proposal, design, spec, and task artifacts.
+- Keep existing localized documentation unchanged unless the task explicitly requests its translation or revision.
+- Refer to OpenSpec artifacts as `proposal`, `design`, `spec`, and `tasks`; do not translate those artifact labels.
 
-There is currently no formal test suite or coverage target. For changes, add focused tests when introducing reusable logic, validators, parsers, or data transformations. Prefer `tests/test_<module>.py` naming if a test suite is added, and include small fixtures rather than full 100-agent runs. At minimum, run a small smoke simulation with `--max-agents`, `--years`, and `--weeks` before submitting simulation changes.
+## Data and Contracts
 
-## Commit & Pull Request Guidelines
+- Treat `data/school/`, `data/apartment/`, and `data/world_templates/` as checked-in source fixtures.
+- Do not edit generated run directories (`data/<world>_<runid>/`), `logs/`, or `rft_data/` unless the task explicitly targets generated data.
+- Never commit `config.json`, API keys, provider credentials, or real generated conversation traces.
+- Godot or other clients must consume `visualization/current.json` and snapshot files, not raw prompts, scratchpads, generation traces, or internal JSONL files.
+- Director events may add context and timeline entries; they must not directly mutate character state, relationships, profiles, or scratchpads.
 
-Recent commits use concise Conventional Commit-style subjects, such as `docs: add Chinese, Japanese and Korean README translations`. Use a short imperative subject with an optional scope prefix (`docs:`, `feat:`, `fix:`). Pull requests should include a summary, affected modules or data paths, commands run, and notes about model/API configuration assumptions. Include screenshots or sample output only when changing reports, visual artifacts, or generated documentation.
+## Change Rules
 
-## Security & Configuration Tips
-
-Keep API keys, endpoints, credentials files, and generated run outputs out of commits unless intentionally adding sanitized fixtures. Treat `data/<world>_<runid>/`, `logs/`, and `rft_data/` as potentially large and sensitive generated artifacts.
+- When a roadmap step in `GAME_DEVELOPMENT_PLAN.md` is implemented and its acceptance criteria pass, update its checklist status in the same change; never mark incomplete work as complete.
+- Keep simulation persistence append-only and time-ordered when modifying legacy JSONL paths.
+- Add focused tests in `tests/test_<module>.py` for reusable validators, schemas, transformations, or data contracts.
+- Run the narrowest relevant test before the full suite.
+- Put new behavior specifications under `openspec/` when changing template, Director, visualization, or game-runtime contracts.
+- Prefer additive, backwards-compatible changes to template packs and visualization snapshots.

@@ -1,0 +1,20 @@
+[python]
+implementation = "CPython"
+version = "3.14.6"
+build = "standard-gil"
+
+[pytest]
+version = "9.1.1"
+
+[godot]
+version = "4.7.1"
+edition = "standard"
+scripting_language = "GDScript"
+export_templates_version = "4.7.1"
+
+[gdunit4]
+version = "6.2.0"
+
+[verification]
+host = "macos-arm64"
+deferred_hosts = ["windows-x86_64"]
