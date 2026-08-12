@@ -1,0 +1,69 @@
+name: Verify project
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.27"
+          enable-cache: true
+          cache-dependency-glob: requirements.lock
+
+      - name: Install the declared Python version
+        run: uv python install 3.14.6
+
+      - name: Install the locked Python environment
+        run: uv venv --python 3.14.6 .venv && uv pip sync --python .venv/bin/python --require-hashes requirements.lock
+
+      - name: Run the Python test suite
+        run: .venv/bin/python -m pytest -q
+
+  spec-validation:
+    name: OpenSpec validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js for OpenSpec
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Install the pinned OpenSpec CLI
+        run: npm install --global @fission-ai/openspec@1.5.0
+
+      - name: Validate all specifications strictly
+        run: openspec validate --all --strict --no-interactive
+
+  godot-tests:
+    name: Godot GdUnit4 tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run vendored GdUnit4 tests with Godot
+        uses: godot-gdunit-labs/gdUnit4-action@17eeffa988f9732fdc3dba3067405d16b55809de # v1
+        with:
+          godot-version: "4.7.1"
+          project_dir: "./godot/"
+          paths: "res://tests"
+          version: installed
+          timeout: 10
+          retries: 0
+          publish-report: false
+          upload-report: true
