@@ -1,0 +1,2 @@
+# Test-only dependency for the playable-runtime baseline.
+pytest==9.1.1
