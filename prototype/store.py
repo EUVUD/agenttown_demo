@@ -104,6 +104,12 @@ class Store:
         ).fetchone()
         return row["id"] if row else None
 
+    def load_blueprint(self, world_id: str) -> dict:
+        row = self.conn.execute("SELECT blueprint FROM worlds WHERE id = ?", (world_id,)).fetchone()
+        if row is None:
+            raise LookupError(f"unknown world: {world_id}")
+        return json.loads(row["blueprint"])
+
     def load_state(self, world_id: str) -> dict:
         row = self.conn.execute("SELECT state FROM worlds WHERE id = ?", (world_id,)).fetchone()
         if row is None:

@@ -14,7 +14,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from prototype.engine import Game, NotFound
 from prototype.llm import LLMError
@@ -30,19 +30,30 @@ MAX_BODY_BYTES = 64 * 1024
 LETTER_READ_PATH = re.compile(r"/api/letters/([\w-]+)/read")
 
 
-def make_handler(game: Game) -> type[BaseHTTPRequestHandler]:
+def make_handler(game: Game, *, dev: bool = False) -> type[BaseHTTPRequestHandler]:
+    """Build the request handler.
+
+    The developer view carries every NPC's secret, so it needs both a server started
+    with `dev=True` and a request that asks for it with `?debug=1`. A client cannot
+    turn it on by itself.
+    """
     write_lock = threading.Lock()
 
-    def with_state(result: Any) -> dict:
-        return {"result": result, "state": game.snapshot(game.current_world())}
+    def snapshot(debug: bool) -> dict:
+        return game.snapshot(game.current_world(), include_debug=debug)
+
+    def with_state(result: Any, debug: bool) -> dict:
+        return {"result": result, "state": snapshot(debug)}
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "TomorrowsReplyPrototype/0.1"
+        dev_enabled = dev
 
         def do_GET(self) -> None:
             path = urlparse(self.path).path
             if path == "/api/state":
-                self._run(lambda: game.snapshot(game.current_world()), write=False)
+                debug = self._wants_debug()
+                self._run(lambda: snapshot(debug), write=False)
             elif path in ("/", "/index.html"):
                 self._static("index.html")
             elif path.startswith("/static/"):
@@ -58,25 +69,29 @@ def make_handler(game: Game) -> type[BaseHTTPRequestHandler]:
                 self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
                 return
             world = game.current_world
+            debug = self._wants_debug()
             letter = LETTER_READ_PATH.fullmatch(path)
             if path == "/api/session":
-                action = lambda: with_state(game.open_session(world()))
+                action = lambda: with_state(game.open_session(world()), debug)
             elif path == "/api/message":
                 action = lambda: with_state(
-                    game.send_message(world(), str(body.get("text", "")), body.get("client_id"))
+                    game.send_message(world(), str(body.get("text", "")), body.get("client_id")), debug
                 )
             elif path == "/api/advance":
-                action = lambda: with_state(game.advance_slot(world()))
+                action = lambda: with_state(game.advance_slot(world()), debug)
             elif path == "/api/dev/away":
-                action = lambda: with_state(game.simulate_absence(world(), _int(body.get("days"), 1)))
+                action = lambda: with_state(game.simulate_absence(world(), _int(body.get("days"), 1)), debug)
             elif path == "/api/world/new":
-                action = lambda: with_state({"world_id": game.new_world()})
+                action = lambda: with_state({"world_id": game.new_world()}, debug)
             elif letter is not None:
-                action = lambda: with_state(game.read_letter(world(), letter.group(1)))
+                action = lambda: with_state(game.read_letter(world(), letter.group(1)), debug)
             else:
                 self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
                 return
             self._run(action, write=True)
+
+        def _wants_debug(self) -> bool:
+            return dev and parse_qs(urlparse(self.path).query).get("debug") == ["1"]
 
         def log_message(self, format: str, *args: Any) -> None:
             sys.stderr.write(f"[{self.log_date_time_string()}] {format % args}\n")
@@ -141,10 +156,12 @@ def _int(value: Any, default: int) -> int:
         return default
 
 
-def serve(game: Game, host: str = "127.0.0.1", port: int = 8765) -> None:
+def serve(game: Game, host: str = "127.0.0.1", port: int = 8765, *, dev: bool = False) -> None:
     game.current_world()
-    httpd = ThreadingHTTPServer((host, port), make_handler(game))
+    httpd = ThreadingHTTPServer((host, port), make_handler(game, dev=dev))
     print(f"明日回信 prototype: http://{host}:{port}  (model: {game.provider.label})", flush=True)
+    if dev:
+        print("developer view enabled: ?debug=1 responses include NPC secrets", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

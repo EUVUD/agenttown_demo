@@ -25,13 +25,18 @@ def main(argv: list[str] | None = None) -> int:
         choices=["auto", "anthropic", "openai", "fake"],
         help="model provider; overrides AGENTTOWN_LLM (default: auto)",
     )
+    parser.add_argument(
+        "--dev",
+        action="store_true",
+        help="allow the developer view (?debug=1), whose responses include every NPC's hidden secret",
+    )
     args = parser.parse_args(argv)
     try:
         provider = provider_from_env(args.llm)
     except LLMError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    serve(Game(args.db, provider, load_blueprint()), args.host, args.port)
+    serve(Game(args.db, provider, load_blueprint()), args.host, args.port, dev=args.dev)
     return 0
 
 
