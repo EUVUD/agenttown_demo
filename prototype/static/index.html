@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>明日回信 · 原型</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">明日回信 <span class="tag">prototype</span></div>
+    <div class="clock">
+      <span id="clock">—</span>
+      <span class="model" id="model"></span>
+    </div>
+    <div class="actions">
+      <span class="busy-label" id="busy-label"></span>
+      <button id="advance" class="primary" title="推进一个时段；每天最后一个时段结束后会生成当天回顾">推进到下一个时段</button>
+      <button id="away" title="假装你离开了几天，看看离线补算">模拟离开…</button>
+      <label class="toggle"><input type="checkbox" id="debug"> 开发者视角</label>
+      <button id="restart" class="ghost">重新开始</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" hidden>
+    <span id="banner-text"></span>
+    <button id="banner-letter" class="primary small">读信</button>
+    <button id="banner-close" class="ghost small" aria-label="关闭">×</button>
+  </div>
+
+  <main class="layout">
+    <section class="card chat">
+      <div class="chat-head">
+        <div class="avatar" id="avatar">夏</div>
+        <div>
+          <div class="name" id="p-name">…</div>
+          <div class="sub" id="p-sub">…</div>
+        </div>
+      </div>
+      <p class="premise" id="premise"></p>
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <form id="composer" class="composer">
+        <textarea id="input" rows="2" maxlength="500" placeholder="给她发消息……（Enter 发送，Shift+Enter 换行）"></textarea>
+        <button type="submit" class="primary" id="send">发送</button>
+      </form>
+    </section>
+
+    <aside class="side">
+      <section class="card">
+        <h2>她现在</h2>
+        <dl class="status" id="status"></dl>
+        <div id="facts"></div>
+      </section>
+
+      <section class="card">
+        <h2>信箱 <span class="count" id="unread"></span></h2>
+        <ul class="letters" id="letters"></ul>
+      </section>
+
+      <section class="card">
+        <h2>她身边的人</h2>
+        <ul class="people" id="people"></ul>
+      </section>
+
+      <section class="card">
+        <h2>时间线</h2>
+        <ol class="timeline" id="timeline"></ol>
+      </section>
+
+      <section class="card debug-only">
+        <h2>开发者视角 <span class="hint">玩家看不到这些</span></h2>
+        <div id="debug-panel"></div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="letter-dialog" class="letter-dialog">
+    <article class="letter">
+      <h3 id="letter-title"></h3>
+      <div class="letter-meta" id="letter-meta"></div>
+      <div class="letter-body" id="letter-body"></div>
+    </article>
+    <form method="dialog" class="dialog-actions"><button class="primary">收好这封信</button></form>
+  </dialog>
+
+  <dialog id="away-dialog" class="small-dialog">
+    <form method="dialog" id="away-form">
+      <h3>模拟离开</h3>
+      <p>现实里 1 天 = 游戏里 1 天。离开超过 7 天，世界只补算 7 天，然后进入休眠。</p>
+      <label>离开 <input type="number" id="away-days" min="1" max="30" value="2"> 天</label>
+      <div class="dialog-actions">
+        <button value="cancel" class="ghost">取消</button>
+        <button value="ok" class="primary">离开</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

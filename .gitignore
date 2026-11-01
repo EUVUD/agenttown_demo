@@ -21,3 +21,6 @@ build/
 # Generated Godot state and GdUnit4 reports
 godot/.godot/
 godot/reports/
+
+# Fast prototype local world state (contains generated conversations)
+prototype/.data/

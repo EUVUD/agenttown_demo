@@ -1,0 +1,83 @@
+{
+  "blueprint_version": 1,
+  "world": {
+    "id": "qingchuan-high",
+    "name": "青川中学",
+    "setting": "南方小城的一所普通高中。九月刚开学，梧桐叶还没黄。高二(3)班换了新班主任，文学社在为月底的全市中学生征文比赛做准备。",
+    "premise": "你是林夏偶然加上的匿名笔友。她不知道你是谁，你也看不到她的世界，只能通过她的消息和来信知道发生了什么。"
+  },
+  "slots": [
+    {"id": 1, "label": "早晨", "hint": "到校、早读、课前"},
+    {"id": 2, "label": "上午", "hint": "上课和课间"},
+    {"id": 3, "label": "午后", "hint": "午休和下午的课"},
+    {"id": 4, "label": "放学后", "hint": "社团活动、回家路上、晚上在家"}
+  ],
+  "protagonist": {
+    "id": "lin_xia",
+    "name": "林夏",
+    "age": 16,
+    "role": "高二(3)班学生，文学社社员",
+    "personality": "内向，嘴硬心软，观察力强；不喜欢被说教，被戳中心事时会用自嘲岔开话题。",
+    "speech_style": "短句，口语化，偶尔用省略号和自嘲；不用书面腔，不说教。",
+    "values": ["诚实", "靠自己", "不背叛朋友"],
+    "taboos": ["不会抄袭或作弊", "不会把朋友的秘密告诉别人"],
+    "goals": [
+      "在月底的征文比赛拿到名次，证明自己写的东西有人愿意看",
+      "弄明白许念为什么突然疏远自己"
+    ],
+    "fears": ["被同学知道父母正在闹离婚", "写出来的东西被当众否定"],
+    "start_mood": "有点紧张",
+    "start_location": "classroom",
+    "home_location": "home"
+  },
+  "npcs": [
+    {
+      "id": "zhou_yu",
+      "name": "周屿",
+      "role": "同桌，校篮球队队员",
+      "personality": "开朗、爱开玩笑；最近上课总打瞌睡，成绩在往下掉。",
+      "hidden": "放学后偷偷在校外奶茶店打工，帮家里还债，不想让任何人知道。",
+      "start_location": "classroom",
+      "affinity": 55,
+      "relationship": "聊得来的同桌，最近不知道在忙什么。"
+    },
+    {
+      "id": "shen_zhiyi",
+      "name": "沈知意",
+      "role": "文学社社长，年级第一",
+      "personality": "优秀、强势、说话直，对文字要求极高；也在准备同一场征文比赛。",
+      "hidden": "其实很欣赏林夏的文字，担心自己会输给她。",
+      "start_location": "club_room",
+      "affinity": 40,
+      "relationship": "社团里的前辈兼竞争对手，有点怕这个人。"
+    },
+    {
+      "id": "xu_nian",
+      "name": "许念",
+      "role": "隔壁班学生，林夏初中最好的朋友",
+      "personality": "温和、敏感，不擅长把话说开。",
+      "hidden": "暑假听到林夏随口说她“太黏人”，一直很受伤。",
+      "start_location": "school_gate",
+      "affinity": 35,
+      "relationship": "曾经无话不谈，这学期开始突然疏远。"
+    },
+    {
+      "id": "chen_laoshi",
+      "name": "陈老师",
+      "role": "新班主任，语文老师",
+      "personality": "严格、话少，但会注意到沉默的学生。",
+      "hidden": "看过林夏的周记，觉得她有天赋，想推荐她参赛。",
+      "start_location": "classroom",
+      "affinity": 50,
+      "relationship": "刚认识的班主任，还摸不清她的脾气。"
+    }
+  ],
+  "locations": [
+    {"id": "classroom", "name": "高二(3)班教室", "description": "上课、传闲话、起冲突的地方。"},
+    {"id": "school_gate", "name": "校门口", "description": "上学放学的必经之路，容易偶遇。"},
+    {"id": "library", "name": "图书馆", "description": "安静，适合躲起来写东西或者说悄悄话。"},
+    {"id": "club_room", "name": "文学社活动室", "description": "放学后社团活动的地方，气氛常常有点紧张。"},
+    {"id": "playground", "name": "操场", "description": "开阔、热闹，篮球场边总有人。"},
+    {"id": "home", "name": "林夏家", "description": "老小区的两居室，最近晚饭时总是很安静。"}
+  ]
+}
