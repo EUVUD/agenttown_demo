@@ -23,7 +23,8 @@ Run `python3 -m prototype` from the repository root, then open
 - `--llm fake` forces the offline model.
 - `--db PATH` keeps a separate save.
 - Saves default to `prototype/.data/`, which is git-ignored.
-- `?debug=1` opens the developer view, which shows NPC secrets and her memories.
+- `--dev` allows the developer view: `?debug=1` then shows NPC secrets and her memories.
+  Without `--dev` no response carries secrets.
 
 `prototype/README.md` is the reference. Summary:
 
@@ -129,12 +130,17 @@ Environment variables:
 3. If refactoring, start with D1.2: formalize `prototype/world.json` as
    `WorldBlueprintV1`, with legal and illegal fixtures.
 4. Older follow-ups are still open:
-   - Archive `openspec/changes/add-playable-time-and-ids` when the user
-     approves.
+   - Archive `openspec/changes/add-playable-time-and-ids` and, once its pull
+     request is merged, `openspec/changes/wire-director-inputs-into-simulation`
+     when the user approves.
+   - Add the small adapter that lets `scripts/run_world.py` start a
+     template-created run (`ensure_run_world_data` requires a base world
+     directory). See `docs/director_world.md`.
    - Confirm branch protection for `develop` and `main` (see
      `docs/ci_cd.md`).
-5. Cleanup: the squash-merged `feature/fast-prototype` branch still exists
-   locally and on `origin`.
+5. Cleanup: the squash-merged `feature/fast-prototype` branch and the
+   rebase-merged `feature/update-prototype-handoff` branch still exist locally
+   and on `origin`.
 
 ## Open Product Questions
 
@@ -163,15 +169,26 @@ These were discussed on 2026-10-31. None of them is decided.
 
 ## Known Issues in Older Code
 
-These are on legacy paths. The prototype does not use them.
+The three issues listed here earlier are fixed on
+`feature/director-inputs-and-prototype-fixes` (the pull request into `develop`):
 
-- `src/world/director.py`: `_resolve_one` records `produced_inputs`, but
-  nothing reads them, so director events do not affect the simulation.
-- `World.add_agent_from_data` runs only when `add_character_to_world` receives
-  `active_world`, and no caller passes it.
-- `src/world/visualization.py` defaults `time` to `Y2020-W00-begin`, and
-  `DirectorWorldService` never passes a time. Every snapshot therefore
-  overwrites the same file.
+- Director results are consumed by the weekly loop of template-created runs
+  (prompt context, public events, arranged encounters, application log).
+- Characters added through the director service join the running roster at the
+  next week start, using their arrival event.
+- Visualization snapshots are labelled with the latest recorded simulation time
+  and refreshed at the end of every week.
+
+The change is specified in `openspec/changes/wire-director-inputs-into-simulation/`
+and documented in `docs/director_world.md`. It is not archived. `scripts/run_world.py`
+still cannot start a template-created run directly; that adapter is the next gap.
+
+`docs/refactor_review.md` holds the full codebase review: reproduced bugs, contract
+gaps, and ranked refactors. The four prototype bugs found there are fixed on this
+branch: catch-up is resumable, snapshots carry no secrets unless the server runs with
+`--dev`, narrator output is screened for undiscovered secrets, and each world keeps
+the blueprint it was created with. The leak screen only catches copied or lightly
+edited text, so check real-model output for paraphrased secrets when you first play.
 
 ## Environment Notes
 
@@ -190,8 +207,22 @@ touched.
 
 ## Working Tree and Git
 
-This handoff was written on `feature/update-prototype-handoff`, created from
-`origin/develop` at `46d2c49`.
+The earlier handoff branch `feature/update-prototype-handoff` was rebase-merged
+into `develop`, so its remote branch is stale and can be deleted. This work lives
+on `feature/director-inputs-and-prototype-fixes`, rebased onto `develop` at
+`9ac4ac5`. It has three commits:
+
+- feat(director): feed director events into the weekly simulation
+- fix(prototype): resumable catch-up, secret-free snapshots, narrator screen,
+  per-world blueprint
+- docs: the refactor review and this handoff
+
+Verified before the pull request: 120 tests pass on Python 3.14.7 and the prototype
+tests pass on 3.13.5; `openspec validate --all --strict` passes. Not run: the legacy
+runner smoke test (it needs `config.json` and a model) and any real-model play.
+
+The local branch `feature/update-prototype-handoff` still points at the old,
+pre-rebase commits and can be deleted once the pull request is merged.
 
 ## Suggested Skills
 
