@@ -11,6 +11,7 @@ is built. Expect to refactor it, not extend it.
 ```bash
 python3 -m prototype            # then open http://127.0.0.1:8765
 python3 -m prototype --llm fake # force the offline fake model
+python3 -m prototype --dev      # also allow the developer view (?debug=1)
 ```
 
 Standard library only (tested on Python 3.13 and 3.14). No install step and no change to
@@ -45,11 +46,29 @@ every feature and is what the tests use, but its writing is canned.
   and sometimes a letter to you.
 - **Offline catch-up**: on page load, each real day missed becomes one summarized
   game day (`offscreen_day` call), capped at 7; longer absences put the world to
-  sleep. One `letter` call then writes to you. Use "模拟离开…" to test it.
+  sleep. One `letter` call then writes to you. Use "模拟离开…" to test it. The plan
+  is stored before the first model call and updated with every committed day, so a
+  provider error part way through is finished by the next page load instead of
+  simulating the absence again.
 - **Knowledge boundary**: NPC secrets (`hidden` in `world.json`) only appear in
   narrator prompts. Chat, letters, and reviews see what she experienced or
-  discovered. This is enforced by prompt construction and covered by a test; it is
-  not yet checked on model output.
+  discovered. Narrator output is also screened before it is stored: her memory,
+  mood, diary, focus, reasons, and letters, and the scene text fed to the day review,
+  are dropped or blanked when they carry text of a secret she has not been told, and
+  the event records `meta.leak_blocked`. A secret counts as told once a fact she
+  knows carries it, so an unrelated discovery about the same person changes nothing,
+  and a discovery that carries someone else's secret is dropped. Her chat reply, mood,
+  and influence text are screened the same way. A blocked absence letter is replaced
+  by a plain one without a record. The screen matches copied or lightly edited text
+  (ten consecutive characters, ignoring punctuation); a paraphrase can still pass, so
+  the narrator prompt rule remains the first defence. The timeline shows the
+  narrator's scene text to the player as written and is not screened.
+- **Developer view**: snapshots carry no `debug` payload by default. `?debug=1` adds
+  NPC secrets, her memories, and diaries, and only a server started with `--dev`
+  honours it.
+- **Worlds keep their blueprint**: each world stores the blueprint it was created
+  from. Editing `world.json` changes new worlds only; a world whose stored blueprint
+  version this build cannot read reports that instead of failing.
 - **Model failures**: invalid JSON gets one repair call, then a rule-based
   fallback flagged in the timeline. Network or auth errors surface in the UI.
 
@@ -60,7 +79,7 @@ catch-up.
 
 | Method | Path | Body |
 |---|---|---|
-| GET | `/api/state` | — |
+| GET | `/api/state` | — (add `?debug=1` on a `--dev` server for the developer view) |
 | POST | `/api/session` | — (runs catch-up) |
 | POST | `/api/message` | `{"text", "client_id"}` (retries with the same `client_id` are deduplicated) |
 | POST | `/api/advance` | — |
@@ -78,6 +97,8 @@ the same API in place of `static/`.
 - IDs are random `prefix-hex`, and time is plain ints, instead of `server.domain`
   `EventId`/`WorldTime` (those require Python 3.14).
 - One active world (the latest); no world selection.
+- The leak screen is a text guard, not a proof; separating "what happened" from
+  "what she perceived" in the narrator output is the real fix (M9.1).
 - Slots advance on a button press rather than the wall clock (O8.1).
 - Keys come from environment variables, not the OS keyring (L5.2).
 - No OpenSpec change was written for this spike, and no roadmap checkbox is ticked:

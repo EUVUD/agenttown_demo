@@ -16,11 +16,16 @@ function el(tag, className, text) {
   return node;
 }
 
+// The developer view is requested per call; only a server started with --dev honours it.
+function debugQuery() {
+  return document.body.classList.contains("debug") ? "?debug=1" : "";
+}
+
 async function api(path, body) {
   const options = body === undefined
     ? {}
     : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
-  const response = await fetch(path, options);
+  const response = await fetch(path + debugQuery(), options);
   const data = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
   if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
   return data;
@@ -193,6 +198,10 @@ function renderTimeline(state) {
 function renderDebug(state) {
   const panel = $("#debug-panel");
   panel.replaceChildren();
+  if (!state.debug) {
+    panel.append(el("div", "empty", "服务没有开启开发者视角。用 python -m prototype --dev 重新启动后，再勾选这里。"));
+    return;
+  }
   panel.append(el("h4", null, "人物的真实状态"));
   const npcs = el("ul");
   for (const npc of state.debug.npcs) {
@@ -285,10 +294,17 @@ async function restart() {
   render(data.state);
 }
 
-function setDebug(on) {
+async function setDebug(on) {
   document.body.classList.toggle("debug", on);
   $("#debug").checked = on;
   try { localStorage.setItem("tr-debug", on ? "1" : "0"); } catch { /* storage unavailable */ }
+  if (on && current && !current.debug) {
+    try {
+      render(await api("/api/state"));
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
 }
 
 // Wiring --------------------------------------------------------------------------
