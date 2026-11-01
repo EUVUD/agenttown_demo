@@ -11,6 +11,16 @@ _LOGGER = get_logger("cleanup", quiet=True)
 # advantages.jsonl: time is a dict {"start": ..., "end": ...}, not a TimeState string
 _EXCLUDED_NAMES = {"advantages.jsonl"}
 
+# Director-authored inputs and the client timeline are not simulation outputs:
+# their rows carry the time they are scheduled for (which may lie ahead of the
+# resume point) and nothing re-creates them, so a resume must leave them alone.
+# ``director/applications.jsonl`` is a simulation output and is trimmed normally.
+_EXCLUDED_RELATIVE_PATHS = {
+    Path("director/events.jsonl"),
+    Path("director/results.jsonl"),
+    Path("visualization/timeline.jsonl"),
+}
+
 
 def _cutoff_index(lines: list[str], *, start_time: TimeState) -> tuple[int | None, int]:
     """Find the first index to cut from.
@@ -106,7 +116,9 @@ def clean_append_only_jsonl_before(*, world_name: str, start_time: TimeState) ->
     """Trim all append-only jsonl files under data/{world} to < start_time.
 
     - Traverses: data/{world}/**/*.jsonl
-    - Excludes: advantages.jsonl (its "time" is a dict interval, a post-simulation artifact)
+    - Excludes: advantages.jsonl (its "time" is a dict interval, a post-simulation artifact),
+      director/events.jsonl, director/results.jsonl and visualization/timeline.jsonl
+      (player-authored inputs and their timeline entries; see _EXCLUDED_RELATIVE_PATHS)
     - Rule: trim from the first entry where time goes in reverse or out of bounds (see _cutoff_index).
     - Only writes back the file if trimming actually occurred.
     """
@@ -120,6 +132,8 @@ def clean_append_only_jsonl_before(*, world_name: str, start_time: TimeState) ->
     scanned = 0
     for p in sorted(root.rglob("*.jsonl")):
         if p.name in _EXCLUDED_NAMES:
+            continue
+        if p.relative_to(root) in _EXCLUDED_RELATIVE_PATHS:
             continue
         scanned += 1
         try:

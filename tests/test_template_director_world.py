@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
-
-from src.config import load_config
-
-load_config(Path(__file__).resolve().parents[1] / "config.example.json")
 
 from src.world.clock import Stage
 from src.world.director import (
     DirectorValidationError,
     create_director_event,
+    record_director_application,
     resolve_director_events,
 )
 from src.world.director_service import DirectorWorldService
@@ -23,6 +21,29 @@ from src.world.template_world import (
 )
 from src.world.templates import TemplateRegistry, TemplateValidationError
 from src.world.visualization import generate_visualization_snapshot
+
+
+# A snapshot key matching this exposes raw prompts, scratchpad internals, or traces.
+_INTERNAL_KEY = re.compile(
+    r"prompt|scratch|trace|working_memory|generation|messages|reasoning", re.IGNORECASE
+)
+# Director input kinds are public contract, not prompt text.
+_ALLOWED_KEYS = {"prompt_context"}
+
+
+def _internal_keys(value: object) -> set[str]:
+    """Return every dict key in a nested snapshot that names internal trace data."""
+    found: set[str] = set()
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            name = str(key)
+            if _INTERNAL_KEY.search(name) and name not in _ALLOWED_KEYS:
+                found.add(name)
+            found |= _internal_keys(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            found |= _internal_keys(nested)
+    return found
 
 
 class TemplateDirectorWorldTests(unittest.TestCase):
@@ -233,14 +254,24 @@ class TemplateDirectorWorldTests(unittest.TestCase):
                 },
             )
 
+            record_director_application(
+                run_dir,
+                time="Y2020-W01-begin",
+                event_id="de-1",
+                kind="prompt_context",
+                status="applied",
+                detail="added to the prompt context of 1 character(s)",
+                characters=["Lin"],
+            )
             snapshot = generate_visualization_snapshot(run_dir)
             self.assertIn("timeline_events", snapshot)
+            self.assertEqual(len(snapshot["director_applications"]), 1)
             self.assertIn("characters", snapshot)
             self.assertIn("relationships", snapshot)
             self.assertIn("locations", snapshot)
             self.assertIn("director_event_results", snapshot)
             self.assertEqual({c["name"] for c in snapshot["characters"]}, {"Lin", "Mina"})
-            self.assertNotIn("prompt", json.dumps(snapshot))
+            self.assertEqual(_internal_keys(snapshot), set())
             self.assertTrue((run_dir / "visualization" / "current.json").exists())
 
     def _make_world(self, data_root: Path) -> Path:

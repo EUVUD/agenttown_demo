@@ -4,13 +4,25 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Mapping
 
+# Used when a run has recorded nothing yet (a freshly created template world).
+DEFAULT_SNAPSHOT_TIME = "Y2020-W00-begin"
+
 
 def generate_visualization_snapshot(
     run_dir: str | Path,
     *,
-    time: str = "Y2020-W00-begin",
+    time: str | None = None,
 ) -> Dict[str, Any]:
+    """Write ``visualization/current.json`` plus a per-time snapshot file.
+
+    ``time`` labels the snapshot and names the file under ``snapshots/``. When
+    it is omitted the latest time recorded in the run data is used (see
+    :func:`infer_snapshot_time`), so successive safe points produce distinct
+    files instead of overwriting one default-named snapshot.
+    """
     run_dir = Path(run_dir)
+    if time is None:
+        time = infer_snapshot_time(run_dir)
     snapshot = {
         "time": time,
         "timeline_events": _timeline_events(run_dir),
@@ -18,6 +30,7 @@ def generate_visualization_snapshot(
         "relationships": _relationship_summaries(run_dir),
         "locations": _location_activity(run_dir),
         "director_event_results": _read_jsonl(run_dir / "director" / "results.jsonl"),
+        "director_applications": _read_jsonl(run_dir / "director" / "applications.jsonl"),
     }
     out_dir = run_dir / "visualization"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -31,6 +44,55 @@ def generate_visualization_snapshot(
         json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     return snapshot
+
+
+def infer_snapshot_time(run_dir: str | Path) -> str:
+    """Return the latest simulation time recorded anywhere in the run.
+
+    Sources, each optional: the legacy runner's ``checkpoint.json`` (a completed
+    week counts as its ``settle`` stage), the last row of every character's
+    ``state.jsonl``, and director application records. Timeline entries are not
+    consulted because director events carry the time they are scheduled for,
+    which may lie ahead of the simulation. Values that do not parse as a world
+    time are ignored; when nothing is recorded the result is
+    :data:`DEFAULT_SNAPSHOT_TIME`.
+    """
+    from src.world.clock import TimeState
+
+    run_dir = Path(run_dir)
+    candidates: List[str] = []
+
+    checkpoint_path = run_dir / "checkpoint.json"
+    if checkpoint_path.exists():
+        try:
+            checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            year = int(checkpoint["year"])
+            week = int(checkpoint["week"])
+            stage = "settle" if week > 0 else "begin"
+            candidates.append(f"Y{year}-W{week:02d}-{stage}")
+        except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+            pass
+
+    persona_root = run_dir / "persona"
+    if persona_root.exists():
+        for persona in sorted(p for p in persona_root.iterdir() if p.is_dir()):
+            last_state = _read_last_jsonl(persona / "state.jsonl") or {}
+            if last_state.get("time"):
+                candidates.append(str(last_state["time"]))
+
+    for item in _read_jsonl(run_dir / "director" / "applications.jsonl"):
+        if item.get("time"):
+            candidates.append(str(item["time"]))
+
+    parsed: List[TimeState] = []
+    for value in candidates:
+        try:
+            parsed.append(TimeState.from_string(value))
+        except (KeyError, ValueError):
+            continue
+    if not parsed:
+        return DEFAULT_SNAPSHOT_TIME
+    return str(max(parsed))
 
 
 def _timeline_events(run_dir: Path) -> List[dict]:
@@ -66,7 +128,7 @@ def _character_summaries(run_dir: Path) -> List[dict]:
         profile = _read_first_profile(persona)
         if not profile:
             continue
-        state = _read_last_jsonl(persona / "state.jsonl") or {}
+        state = _state_content(_read_last_jsonl(persona / "state.jsonl"))
         name = profile.get("name", persona.name)
         recent_event_ids = [
             item["id"]
@@ -103,7 +165,7 @@ def _relationship_summaries(run_dir: Path) -> List[dict]:
                 {
                     "source": persona.name,
                     "target": pad.stem,
-                    "summary": last.get("content", ""),
+                    "summary": _relationship_summary_text(last),
                     "confidence": "derived",
                 }
             )
@@ -132,6 +194,41 @@ def _location_activity(run_dir: Path) -> List[dict]:
                 }
             )
     return result
+
+
+# Longest relationship text a snapshot publishes. Matches the engine's own clip for
+# scratchpad summaries, so a snapshot never carries more than a prompt would.
+_RELATIONSHIP_TEXT_LIMIT = 500
+
+
+def _relationship_summary_text(row: Mapping[str, Any]) -> str:
+    """Return the public text for a scratchpad row.
+
+    The engine writes ``{"summary", "content"}`` where ``content`` is the full
+    private note. A snapshot shows the summary, or a clipped ``content`` for rows
+    that have none (for example hints seeded at character entry).
+    """
+    summary = row.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        return summary.strip()
+    content = str(row.get("content", "") or "")
+    if len(content) > _RELATIONSHIP_TEXT_LIMIT:
+        return content[: _RELATIONSHIP_TEXT_LIMIT - 1].rstrip() + "…"
+    return content
+
+
+def _state_content(row: dict | None) -> dict:
+    """Unwrap a ``state.jsonl`` row.
+
+    The engine writes ``{"time": ..., "content": {...}}``; older template runs
+    wrote the fields flat next to ``time``. Both shapes are accepted.
+    """
+    if not row:
+        return {}
+    content = row.get("content")
+    if isinstance(content, dict):
+        return content
+    return row
 
 
 def _read_first_profile(persona_root: Path) -> dict:

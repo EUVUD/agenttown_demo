@@ -1,5 +1,11 @@
 # Secrets
 gemini_key.json
+config.json
+
+# Generated simulation output (see AGENTS.md: never commit run data or traces)
+logs/
+rft_data/
+data/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/
 
 # Local IDE / tool settings
 .claude/settings.local.json

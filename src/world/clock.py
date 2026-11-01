@@ -6,7 +6,16 @@ from enum import IntEnum
 
 from src.config import get_config
 
-config = get_config()
+
+def _time_config() -> dict:
+    """Return the ``world.time`` config section.
+
+    Resolved lazily so importing this module has no side effects: ``Stage`` and
+    ``TimeState`` parsing/ordering need no configuration, and callers that only
+    use them (tests, read models, the director layer) must not trigger a
+    config load.
+    """
+    return get_config()["world"]["time"]
 
 
 class Stage(IntEnum):
@@ -155,7 +164,7 @@ class TimeState:
 
         while week <= 0:
             year -= 1
-            week += config["world"]["time"]["n_week"]
+            week += _time_config()["n_week"]
 
         return TimeState(year=year, week=week, stage=Stage.BEGIN)
 
@@ -209,8 +218,9 @@ class Clock:
           contact slot (Stage.CONTACT, slot=n_contact_slot).
         - Otherwise: invalid usage.
         """
-        n_slot = config["world"]["time"]["n_contact_slot"]
-        n_week = config["world"]["time"]["n_week"]
+        time_cfg = _time_config()
+        n_slot = time_cfg["n_contact_slot"]
+        n_week = time_cfg["n_week"]
         y, w, s = self._year, self._week, self._slot
 
         if self._stage == Stage.CONTACT:
