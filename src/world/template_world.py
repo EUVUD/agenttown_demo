@@ -56,8 +56,9 @@ def create_world_from_template(
     _write_locations(run_dir, template)
     _ensure_runtime_dirs(run_dir)
 
+    start_time = _template_start_time(template)
     for draft in payload["characters"]:
-        _initialize_character_storage(run_dir, template, dict(draft))
+        _initialize_character_storage(run_dir, template, dict(draft), time=start_time)
 
     return run_dir
 
@@ -66,12 +67,20 @@ def add_character_to_world(
     run_dir: str | Path,
     request: Mapping[str, Any],
     *,
-    current_stage: Any = "BEGIN",
+    current_stage: Any | None = None,
     templates_root: str | Path = "data/world_templates",
     active_world: Any | None = None,
 ) -> CharacterEntryResult:
+    """Add a character to a running template world at a safe boundary.
+
+    ``current_stage`` names the world's current stage; when omitted it is read
+    from ``active_world.clock`` and defaults to ``BEGIN`` without a world. When
+    ``active_world`` is given, its roster is refreshed through
+    ``add_agent_from_data`` after the persona files exist, and its clock time is
+    used as the arrival time instead of the template's start time.
+    """
     run_dir = Path(run_dir)
-    stage = _normalize_stage(current_stage)
+    stage = _normalize_stage(_resolve_entry_stage(current_stage, active_world))
     if stage.name != "BEGIN":
         raise CharacterEntryError(
             f"characters can join only at safe week boundaries; current stage is {stage.name}"
@@ -87,7 +96,8 @@ def add_character_to_world(
     except TemplateValidationError as exc:
         raise CharacterEntryError(str(exc)) from exc
 
-    allowed_roles = template.join_modes[join_mode].get("roles", [])
+    mode = template.join_modes[join_mode]
+    allowed_roles = mode.get("roles", [])
     if allowed_roles and character.get("role") not in allowed_roles:
         raise CharacterEntryError(
             f"join mode {join_mode} does not allow role: {character.get('role')}"
@@ -98,26 +108,44 @@ def add_character_to_world(
     if persona_root.exists():
         raise CharacterEntryError(f"character already exists: {name}")
 
-    profile_path = _initialize_character_storage(run_dir, template, character)
-    _ensure_private_location(run_dir, name, template)
+    # The arrival event is timed when the character actually joins. The character's
+    # own seed records are stamped at the template start instead: resume cleanup
+    # trims every append-only file from the resume point on, and nothing recreates
+    # a newcomer's initial state or memories. The profile file is named after the
+    # joining year because the engine reads profile/year=<current year>.json.
+    entry_time = _active_world_time(active_world) or _template_start_time(template)
+    seed_time = _template_start_time(template)
+    profile_year = _year_of(entry_time, default=_year_of(seed_time, default=2020))
+    starting_location = str(
+        request.get("starting_location")
+        or mode.get("starting_location")
+        or "classroom"
+    )
+
+    profile_path = _initialize_character_storage(
+        run_dir, template, character, time=seed_time, profile_year=profile_year
+    )
+    if mode.get("requires_home"):
+        _ensure_private_location(run_dir, name)
     _seed_known_character_hints(
         persona_root,
         request.get("known_character_hints", []),
         str(request.get("arrival_context", "")),
+        time=seed_time,
     )
     event = create_director_event(
         run_dir,
         {
             "type": "arrival",
-            "timing": "Y2020-W00-begin",
+            "timing": entry_time,
             "targets": [name],
             "visibility": "class",
             "intensity": 1,
-            "locations": [str(request.get("starting_location", "classroom"))],
+            "locations": [starting_location],
             "duration": {"weeks": 1},
             "description": str(
                 request.get("arrival_context")
-                or template.join_modes[join_mode].get("description")
+                or mode.get("description")
                 or f"{name} joins the world."
             ),
             "metadata": {"join_mode": join_mode},
@@ -150,6 +178,40 @@ def add_character_to_world(
     )
 
 
+def _resolve_entry_stage(current_stage: Any | None, active_world: Any | None) -> Any:
+    """Prefer an explicit stage, then the active world's clock, then ``BEGIN``."""
+    if current_stage is not None:
+        return current_stage
+    clock = getattr(active_world, "clock", None)
+    get_time = getattr(clock, "get_time", None)
+    if callable(get_time):
+        return get_time().stage
+    return "BEGIN"
+
+
+def _active_world_time(active_world: Any | None) -> str | None:
+    clock = getattr(active_world, "clock", None)
+    get_time = getattr(clock, "get_time", None)
+    if callable(get_time):
+        return str(get_time())
+    return None
+
+
+def _year_of(time: str, *, default: int) -> int:
+    try:
+        return int(str(time)[1:5])
+    except (TypeError, ValueError):
+        return default
+
+
+def _template_start_time(template: WorldTemplate) -> str:
+    try:
+        start_year = int(template.time.get("start_year", 2020))
+    except (TypeError, ValueError):
+        start_year = 2020
+    return f"Y{start_year}-W00-begin"
+
+
 def _load_run_template(
     run_dir: Path, templates_root: str | Path = "data/world_templates"
 ) -> WorldTemplate:
@@ -170,6 +232,9 @@ def _write_worldview(
         "background": background,
         "world": dict(world_payload),
         "time": template.time,
+        # Keys the legacy engine reads from every run's worldview.json.
+        "world_setting": background,
+        "prices": {},
     }
     (run_dir / "worldview.json").write_text(
         json.dumps(worldview, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -197,7 +262,12 @@ def _ensure_runtime_dirs(run_dir: Path) -> None:
 
 
 def _initialize_character_storage(
-    run_dir: Path, template: WorldTemplate, draft: Mapping[str, Any]
+    run_dir: Path,
+    template: WorldTemplate,
+    draft: Mapping[str, Any],
+    *,
+    time: str = "Y2020-W00-begin",
+    profile_year: int | None = None,
 ) -> Path:
     name = str(draft["name"]).strip()
     root = run_dir / "persona" / name
@@ -214,17 +284,20 @@ def _initialize_character_storage(
         path.mkdir(parents=True, exist_ok=True)
 
     profile = _profile_from_draft(template, draft)
-    profile_path = profile_dir / "year=2020.json"
+    profile_path = profile_dir / f"year={profile_year or _year_of(time, default=2020)}.json"
     profile_path.write_text(
         json.dumps(profile, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    _ensure_jsonl(root / "state.jsonl", _initial_state(template))
+    _ensure_jsonl(root / "state.jsonl", _initial_state(template, time=time))
     _ensure_jsonl(root / "schedule.jsonl")
     _ensure_jsonl(root / "activity.jsonl")
     _ensure_jsonl(root / "reward.jsonl")
     _ensure_jsonl(root / "memory" / "weekly_diary.jsonl")
     _ensure_jsonl(root / "memory" / "history.jsonl")
-    _ensure_jsonl(scratch / "general.jsonl", {"time": "Y2020-W00-begin", "content": profile["brief_introduction"]})
+    _ensure_jsonl(
+        scratch / "general.jsonl",
+        {"time": time, "content": profile["brief_introduction"]},
+    )
     _ensure_jsonl(scratch / "working_memory.jsonl")
     _ensure_jsonl(scratch / ".access_log.jsonl")
     return profile_path
@@ -264,16 +337,16 @@ def _profile_from_draft(template: WorldTemplate, draft: Mapping[str, Any]) -> di
     }
 
 
-def _initial_state(template: WorldTemplate) -> dict:
-    state = {
-        "time": "Y2020-W00-begin",
+def _initial_state(template: WorldTemplate, *, time: str = "Y2020-W00-begin") -> dict:
+    """Return the first ``state.jsonl`` row in the engine's ``{time, content}`` shape."""
+    content = {
         "vitality": 80,
         "fulfillment": {"mood": 60, "social": 50, "esteem": 50, "material": 50},
         "skills": {},
-        "assets": {"money": 0, "possessions": []},
+        "assets": {"deposit": 0, "possessions": []},
     }
-    state.update(template.default_state)
-    return state
+    content.update(template.default_state)
+    return {"time": time, "content": content}
 
 
 def _ensure_jsonl(path: Path, first_obj: Mapping[str, Any] | None = None) -> None:
@@ -285,9 +358,7 @@ def _ensure_jsonl(path: Path, first_obj: Mapping[str, Any] | None = None) -> Non
             f.write(json.dumps(dict(first_obj), ensure_ascii=False) + "\n")
 
 
-def _ensure_private_location(run_dir: Path, name: str, template: WorldTemplate) -> None:
-    if not any(mode.get("requires_home") for mode in template.join_modes.values()):
-        return
+def _ensure_private_location(run_dir: Path, name: str) -> None:
     path = run_dir / "locations.json"
     data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     private = data.setdefault("private", {})
@@ -305,12 +376,16 @@ def _ensure_private_location(run_dir: Path, name: str, template: WorldTemplate) 
 
 
 def _seed_known_character_hints(
-    persona_root: Path, hints: Any, arrival_context: str
+    persona_root: Path,
+    hints: Any,
+    arrival_context: str,
+    *,
+    time: str = "Y2020-W00-begin",
 ) -> None:
     if arrival_context:
         _append_jsonl(
             persona_root / "memory" / "scratchpad" / "general.jsonl",
-            {"time": "Y2020-W00-begin", "content": arrival_context},
+            {"time": time, "content": arrival_context},
         )
     if not isinstance(hints, list):
         return
@@ -324,7 +399,7 @@ def _seed_known_character_hints(
             / "characters"
             / f"{hint['name']}.jsonl",
             {
-                "time": "Y2020-W00-begin",
+                "time": time,
                 "content": str(hint.get("context", "Known before joining.")),
             },
         )

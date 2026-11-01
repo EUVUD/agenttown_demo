@@ -388,6 +388,11 @@ class RoleAgent:
         """
         self.dm.clear_week_responses()
         self.proposed_activities.clear()
+        self.dm.set_world_context([])
+
+    def set_director_context(self, lines: List[str]) -> None:
+        """Set this week's director context for prompts (never persisted)."""
+        self.dm.set_world_context(list(lines))
 
     def get_schedule(self):
         """Get today's schedule for this agent.

@@ -108,6 +108,9 @@ class DataManager:
     # Send sequence number: the index (starting from 1) of a message within the
     # current slot, keyed by the (slot_str, recipient) dimension
     _send_seq_map: Dict[Tuple[str, str], int] = field(init=False, default_factory=dict)
+    # This week's director context lines (template-driven runs). Shown in every
+    # prompt built from roleplay_prompt(); never written to any JSONL file.
+    world_context: List[str] = field(init=False, default_factory=list)
 
     def __post_init__(self) -> None:
         self.logger = get_logger(f"agent_{self.char}", quiet=True)
@@ -154,6 +157,23 @@ class DataManager:
         self.response_this_week = []
         self.last_slot_errors = ""
         self.location_store = get_location_store(self.world)
+
+    def set_world_context(self, lines: List[str]) -> None:
+        """Replace the transient world-context lines shown in prompts this week."""
+        self.world_context = [str(line) for line in lines if str(line).strip()]
+
+    def world_context_prompt(self) -> str:
+        """Render director context as a prompt section, or "" when there is none."""
+        if not self.world_context:
+            return ""
+        items = "\n".join(f"- {line}" for line in self.world_context)
+        return (
+            "## World Developments This Week:\n"
+            "The following developments are happening around you this week. Treat them "
+            "as things you have heard or noticed and respond in character; on their own "
+            "they do not change what you already know, feel, or own.\n"
+            f"{items}"
+        )
 
     def set_last_slot_errors(self, s: str) -> None:
         """Record the previous round's action error text, for display in the next contact_prompt."""
@@ -1110,6 +1130,7 @@ class DataManager:
             WORLDVIEW,
             SCRATCHPAD_PROMPT.format(recent_scratchpads=recent_scratchpads),
             self.recent_history_prompt(),
+            self.world_context_prompt(),
             location_block,
             COMMONSENSE,
             ROLEPLAY_PRINCIPLES,

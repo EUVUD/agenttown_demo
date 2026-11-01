@@ -84,8 +84,15 @@ class World:
         self.agents: List[RoleAgent] = self._init_agents_from_data(
             max_agents=self.max_agents
         )
-        # Cache name -> agent mapping (agents don't change after init)
+        # Cache name -> agent mapping (kept in sync by add_agent_from_data)
         self._name2agent: Dict[str, RoleAgent] = {a.name: a for a in self.agents}
+
+        # Director-world runs (created from a template pack) carry player-authored
+        # events that the weekly loop consumes as prompt context, public events,
+        # and arranged encounters. Legacy runs have no template_meta.json and
+        # never enter these code paths.
+        self._director_run_dir: Optional[Path] = self._detect_director_run_dir()
+        self._director_inputs: list = []
 
     # Initialization ---------------------------------------------------------
     def _persona_root(self) -> Path:
@@ -175,6 +182,15 @@ class World:
             self.logger.info(f"Loaded model assignment from {path}")
             # Validate all names are present
             missing = [n for n in names if n not in assignment]
+            if missing and self._detect_director_run_dir() is not None:
+                # Characters added by the director service after the first start have
+                # no assignment yet. Give them one the same way add_agent_from_data does.
+                for name in missing:
+                    assignment[name] = self._role_models[len(assignment) % len(self._role_models)]
+                with path.open("w", encoding="utf-8") as f:
+                    json.dump(dict(sorted(assignment.items())), f, indent=2, ensure_ascii=False)
+                self.logger.info(f"Assigned models to newly added agents: {missing}")
+                missing = []
             if missing:
                 raise ValueError(f"model_assignment.json missing agents: {missing}")
             # Warn if config models differ from persisted assignment
@@ -297,6 +313,13 @@ class World:
         if name in self._name2agent:
             return self._name2agent[name]
 
+        stage = self.clock.get_time().stage
+        if stage != Stage.BEGIN:
+            raise RuntimeError(
+                "characters can join only at week boundaries (Stage.BEGIN); "
+                f"the world clock is at {stage.name}"
+            )
+
         persona_dir = self._persona_root() / name
         if not persona_dir.exists():
             raise FileNotFoundError(f"persona not found for new agent: {persona_dir}")
@@ -324,7 +347,53 @@ class World:
         )
         self.agents.append(agent)
         self._name2agent[name] = agent
+        # Character entry may have written the newcomer's home into locations.json
+        # outside this process-wide store.
+        self.location_store.reload_from_disk()
+        self._register_newcomer_position(agent)
         return agent
+
+    def _register_newcomer_position(self, agent: RoleAgent) -> None:
+        """Make a newcomer's profile position known to the position store.
+
+        The year-end position season looks up every agent's current position in
+        the store and asserts it exists; founding agents are covered by
+        ``_merge_profile_positions``. Does nothing before the store exists.
+        """
+        position_store = getattr(self, "position_store", None)
+        if position_store is None:
+            return
+        from src.world.position_application import Position
+
+        try:
+            profile = agent.dm.read_profile()
+        except FileNotFoundError:
+            return
+        data = profile.get("position") or {}
+        if not data.get("organization") or not data.get("role"):
+            return
+        pos_name = f"{data['organization']}/{data['role']}"
+        existing = position_store.get(pos_name)
+        if existing is None:
+            position_store.add(
+                Position(
+                    organization=data["organization"],
+                    role=data["role"],
+                    type=data.get("type", "non-work"),
+                    description=data.get("description", ""),
+                    weekly_income=data.get("weekly_income", 0),
+                    weekly_delta_skills=data.get("weekly_delta_skills", {}),
+                    capacity=1,
+                    occupied_by=[agent.name],
+                    created_year=-1,
+                )
+            )
+        else:
+            if agent.name not in existing.occupied_by:
+                existing.occupied_by.append(agent.name)
+            existing.capacity = max(existing.capacity, len(existing.occupied_by))
+        position_store.save()
+        self.logger.info(f"[POSITIONS] Registered {agent.name} at {pos_name}")
 
     def _collect_existing_schedules(self) -> Dict[str, Dict[str, Schedule]]:
         """Collect existing schedules for conflict detection.
@@ -703,6 +772,13 @@ class World:
         for agent in self.agents:
             agent.clear_on_week_start()
 
+        # Director inputs (template-driven runs only): admit characters who joined
+        # since the last week, resolve pending events, and hand this week's active
+        # context to the characters allowed to see it.
+        self._sync_director_roster()
+        self._load_director_inputs()
+        self._apply_director_prompt_context()
+
         # Stage 1: plan
         self.clock.set_stage(Stage.PLAN)
         t = self.clock.get_time()
@@ -719,7 +795,7 @@ class World:
         t = self.clock.get_time()
         self.logger.info(f"== BEFORE_CONTACT STAGE == year={t.year} week={t.week}")
 
-        # God Model: generate public events for this week
+        # God Model: generate public events for this week (plus director incidents)
         this_week_events = self._generate_public_events()
 
         # Agents: sign up for public events (parallel)
@@ -903,7 +979,11 @@ class World:
             for agent in self.agents:
                 agent.settle_week()
 
+        # Director-world runs refresh the client snapshot at this safe point.
+        self._write_director_snapshot()
+
     # Internal --------------------------------------------------------------
+
     # def _build_today_activities(self) -> tuple[list[JointActivity], list[SoloActivity]]:
     #     """Build today's joint and solo activities based on current clock time."""
     #     t = self.clock.get_time()
@@ -1120,18 +1200,20 @@ class World:
 
         # 2. Generate new public events
         agent_summaries = self.build_all_agents_summary()
+        director_events = self._director_public_events()
         previous_events = "\n".join(
             [
                 f"- {evt.event_name}: {evt.description}"
                 for evt in sorted(public_events.values(), key=lambda e: e.event_id)
             ]
+            + [f"- {evt.event_name}: {evt.description}" for evt in director_events]
         )
         valid_agent_names = [agent.name for agent in self.agents]
         existing_event_names = {
             evt.event_name.strip().lower()
             for evt in public_events.values()
             if evt.is_active_this_week(t.year, t.week, n_weeks_per_year)
-        }
+        } | {evt.event_name.strip().lower() for evt in director_events}
 
         new_events = generate_public_events(
             agent_summaries=agent_summaries,
@@ -1175,6 +1257,7 @@ class World:
                 eligible_participants=evt.eligible_participants,
             )
             this_week_events.append(this_week_evt)
+        this_week_events.extend(director_events)
         this_week_events.sort(key=lambda e: e.event_id)
 
         return this_week_events
@@ -1193,6 +1276,10 @@ class World:
         verify_logger = get_verify_logger(feature="encounter_activity")
         t = self.clock.get_time()
         name2agent = self.by_name()
+
+        # Director-arranged encounters first, so their participants count as
+        # engaged when the God Model fills the remaining idle slots.
+        self._schedule_director_encounters()
 
         # Collect idle agents for each day of the week
         n_days = self.config["time"]["n_day"]
@@ -1308,6 +1395,226 @@ class World:
                 verify_logger.info(f"  Scene: {description}")
 
         self.logger.info(f"Generated {len(encounters)} encounter events for this week")
+
+    # Director inputs (template-driven runs) -----------------------------------
+    def _detect_director_run_dir(self) -> Optional[Path]:
+        run_dir = Path("data") / self.data_dir
+        return run_dir if (run_dir / "template_meta.json").exists() else None
+
+    def _sync_director_roster(self) -> None:
+        """Add characters whose director arrival has started (week boundary only).
+
+        Character entry runs outside this process and only writes persona files
+        plus an arrival event. The roster is refreshed here, at Stage.BEGIN and
+        before planning, so a newcomer plans, contacts, and acts from this week.
+        Only characters named by an arrival event are admitted, so personas left
+        out by ``max_agents`` stay out.
+        """
+        if self._director_run_dir is None:
+            return
+        from src.world.director import pending_arrivals, resolve_director_events
+
+        resolve_director_events(self._director_run_dir)
+        for name in pending_arrivals(
+            self._director_run_dir,
+            time=self.clock.get_time(),
+            known_characters=self._name2agent,
+        ):
+            if not (self._persona_root() / name / "profile").exists():
+                self.logger.warning(
+                    f"[DIRECTOR] arrival of {name} skipped: persona files not found"
+                )
+                continue
+            self.add_agent_from_data(name)
+            self.logger.info(f"[DIRECTOR] {name} joined the active roster")
+
+    def _load_director_inputs(self) -> None:
+        """Resolve pending director events and load the inputs active this week."""
+        self._director_inputs = []
+        if self._director_run_dir is None:
+            return
+        from src.world.director import (
+            load_active_director_inputs,
+            resolve_director_events,
+        )
+
+        resolve_director_events(self._director_run_dir)
+        t = self.clock.get_time()
+        self._director_inputs = load_active_director_inputs(
+            self._director_run_dir,
+            time=t,
+            weeks_per_year=self.config["time"]["n_week"],
+        )
+        self.logger.info(
+            f"[DIRECTOR] {len(self._director_inputs)} director input(s) active for "
+            f"{t.repr_week()}"
+        )
+
+    def _apply_director_prompt_context(self) -> None:
+        """Hand each character the director context it is allowed to see."""
+        if not self._director_inputs:
+            return
+        from src.world.director import (
+            INPUT_KIND_PROMPT_CONTEXT,
+            director_prompt_context,
+            is_visible_to,
+            record_director_application,
+        )
+
+        t = self.clock.get_time()
+        for agent in self.agents:
+            agent.set_director_context(
+                director_prompt_context(self._director_inputs, agent.name)
+            )
+        for item in self._director_inputs:
+            if INPUT_KIND_PROMPT_CONTEXT not in item.kinds:
+                continue
+            recipients = [a.name for a in self.agents if is_visible_to(item.event, a.name)]
+            record_director_application(
+                self._director_run_dir,
+                time=t,
+                event_id=item.event.event_id,
+                kind=INPUT_KIND_PROMPT_CONTEXT,
+                status="applied" if recipients else "skipped",
+                detail=(
+                    f"added to the prompt context of {len(recipients)} character(s)"
+                    if recipients
+                    else "no character in the roster may see this event"
+                ),
+                characters=recipients,
+                locations=item.event.locations,
+            )
+
+    def _director_public_events(self) -> List[PublicEvent]:
+        """Return this week's director incidents as sign-up public events."""
+        if not self._director_inputs:
+            return []
+        from src.world.director import (
+            INPUT_KIND_PUBLIC_EVENT,
+            director_public_events,
+            record_director_application,
+        )
+
+        t = self.clock.get_time()
+        by_id = {item.event.event_id: item for item in self._director_inputs}
+        events: List[PublicEvent] = []
+        for record in director_public_events(
+            self._director_inputs,
+            year=t.year,
+            week=t.week,
+            n_days=self.config["time"]["n_day"],
+        ):
+            source_id = record.pop("source_event_id")
+            evt = PublicEvent.from_dict(record)
+            events.append(evt)
+            record_director_application(
+                self._director_run_dir,
+                time=t,
+                event_id=source_id,
+                kind=INPUT_KIND_PUBLIC_EVENT,
+                status="applied",
+                detail=(
+                    f"offered for sign-up as public event '{evt.event_name}' "
+                    f"on day {evt.start_day}"
+                ),
+                characters=(
+                    [] if evt.eligible_participants == "all" else list(evt.eligible_participants)
+                ),
+                locations=by_id[source_id].event.locations,
+            )
+        if events:
+            self.logger.info(
+                f"[DIRECTOR] {len(events)} director incident(s) offered as public events"
+            )
+        return events
+
+    def _schedule_director_encounters(self) -> None:
+        """Turn arranged-encounter inputs into encounter schedules where they fit."""
+        if not self._director_inputs:
+            return
+        from src.world.director import (
+            INPUT_KIND_ENCOUNTER_CANDIDATE,
+            plan_arranged_encounters,
+            record_director_application,
+        )
+
+        t = self.clock.get_time()
+        n_days = self.config["time"]["n_day"]
+        name2agent = self.by_name()
+
+        wanted: set[str] = set()
+        for item in self._director_inputs:
+            if INPUT_KIND_ENCOUNTER_CANDIDATE in item.kinds:
+                payload = item.payload(INPUT_KIND_ENCOUNTER_CANDIDATE)
+                wanted.update(str(x) for x in payload.get("characters") or item.event.targets)
+        busy_days = {
+            name: {
+                day
+                for day in range(1, n_days + 1)
+                if name2agent[name].dm.get_schedule_for_day(t.year, t.week, day)
+            }
+            for name in sorted(wanted)
+            if name in name2agent
+        }
+        public_locs, _ = self.location_store.list_all()
+
+        plans, skipped = plan_arranged_encounters(
+            self._director_inputs,
+            known_characters=set(name2agent),
+            busy_days=busy_days,
+            valid_locations=public_locs,
+            n_days=n_days,
+        )
+        for plan in plans:
+            schd = Schedule(
+                activity_name=f"Encounter-{plan.participants[0]}-{plan.participants[1]}",
+                activity_time=TimeState(
+                    year=t.year, week=t.week, stage=Stage.ACTIVITY, day=plan.day
+                ),
+                participants=list(plan.participants),
+                type="encounter",
+                location=plan.location,
+                event_description=plan.description,
+            )
+            for name in plan.participants:
+                name2agent[name].dm.add_schedule(schd)
+            record_director_application(
+                self._director_run_dir,
+                time=t,
+                event_id=plan.event_id,
+                kind=INPUT_KIND_ENCOUNTER_CANDIDATE,
+                status="applied",
+                detail=f"scheduled an encounter on day {plan.day} at {plan.location}",
+                characters=list(plan.participants),
+                locations=[plan.location],
+            )
+            self.logger.info(
+                f"[DIRECTOR] arranged encounter on D{plan.day}: "
+                f"{' & '.join(plan.participants)} at {plan.location}"
+            )
+        for item in skipped:
+            record_director_application(
+                self._director_run_dir,
+                time=t,
+                event_id=item.event_id,
+                kind=item.kind,
+                status="skipped",
+                detail=item.reason,
+            )
+            self.logger.warning(
+                f"[DIRECTOR] arranged encounter {item.event_id} skipped: {item.reason}"
+            )
+
+    def _write_director_snapshot(self) -> None:
+        """Refresh the client-facing visualization snapshot for director runs."""
+        if self._director_run_dir is None:
+            return
+        from src.world.visualization import generate_visualization_snapshot
+
+        snapshot = generate_visualization_snapshot(
+            self._director_run_dir, time=str(self.clock.get_time())
+        )
+        self.logger.info(f"[DIRECTOR] visualization snapshot written for {snapshot['time']}")
 
     # ---------- Year-end Profile Update ----------
     def _update_yearly_profiles(self) -> None:

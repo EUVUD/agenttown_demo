@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import importlib
 import re
-import sys
 import tomllib
 from pathlib import Path
+
+from tests.support.fresh_interpreter import legacy_modules_loaded_by
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -29,21 +29,11 @@ DIRECT_REQUIREMENTS = {
 
 
 def test_python_skeleton_packages_import_without_legacy_runtime_side_effects() -> None:
-    legacy_modules_before = {
-        module_name
-        for module_name in sys.modules
-        if module_name == "src.world" or module_name.startswith("src.world.")
-    }
+    loaded = legacy_modules_loaded_by(
+        "import server, server.domain, tests.playable, tests.e2e"
+    )
 
-    for package_name in ("server", "tests.playable", "tests.e2e"):
-        assert importlib.import_module(package_name)
-
-    legacy_modules_after = {
-        module_name
-        for module_name in sys.modules
-        if module_name == "src.world" or module_name.startswith("src.world.")
-    }
-    assert legacy_modules_after == legacy_modules_before
+    assert loaded == set()
 
 
 def test_dependency_lock_is_exact_and_records_its_uv_inputs() -> None:

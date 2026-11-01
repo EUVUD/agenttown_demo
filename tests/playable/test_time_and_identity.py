@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import importlib
-import sys
 from dataclasses import FrozenInstanceError
 from uuid import uuid4
 
 import pytest
 
 from server.domain import EventId, TimeSlot, Version, WorldDay, WorldTime
+from tests.support.fresh_interpreter import legacy_modules_loaded_by
 
 
 UUID7_TEXT = "0194fdcb-1c47-7a09-b52c-561154de0b4a"
@@ -82,17 +81,4 @@ def test_domain_value_objects_are_immutable() -> None:
 
 
 def test_domain_import_does_not_load_legacy_runtime_modules() -> None:
-    legacy_modules_before = {
-        module_name
-        for module_name in sys.modules
-        if module_name == "src.world" or module_name.startswith("src.world.")
-    }
-
-    assert importlib.import_module("server.domain")
-
-    legacy_modules_after = {
-        module_name
-        for module_name in sys.modules
-        if module_name == "src.world" or module_name.startswith("src.world.")
-    }
-    assert legacy_modules_after == legacy_modules_before
+    assert legacy_modules_loaded_by("import server.domain") == set()

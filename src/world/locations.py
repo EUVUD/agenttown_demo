@@ -110,6 +110,17 @@ class LocationStore:
         self._load_or_create()
         return list(self.public.keys()), list(self.private.keys())
 
+    def reload_from_disk(self) -> bool:
+        """Re-read ``locations.json`` written by another component.
+
+        Used after director-world character entry adds a private home outside
+        this process-wide store. Returns False when the file does not exist.
+        """
+        if not self.path.exists():
+            return False
+        self._load_from_file(self.path)
+        return True
+
     def is_valid(self, loc_key: str) -> bool:
         self._load_or_create()
         return (loc_key in self.public) or (loc_key in self.private)
