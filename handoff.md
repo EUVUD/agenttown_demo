@@ -130,9 +130,9 @@ Environment variables:
 3. If refactoring, start with D1.2: formalize `prototype/world.json` as
    `WorldBlueprintV1`, with legal and illegal fixtures.
 4. Older follow-ups are still open:
-   - Archive `openspec/changes/add-playable-time-and-ids` when the user
-     approves. (`wire-director-inputs-into-simulation` was archived on
-     2026-11-06.)
+   - Both OpenSpec changes that were waiting for approval
+     (`add-playable-time-and-ids` and `wire-director-inputs-into-simulation`)
+     were archived on 2026-11-06.
    - Add the small adapter that lets `scripts/run_world.py` start a
      template-created run (`ensure_run_world_data` requires a base world
      directory). See `docs/director_world.md`.
