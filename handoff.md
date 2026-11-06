@@ -130,9 +130,9 @@ Environment variables:
 3. If refactoring, start with D1.2: formalize `prototype/world.json` as
    `WorldBlueprintV1`, with legal and illegal fixtures.
 4. Older follow-ups are still open:
-   - Archive `openspec/changes/add-playable-time-and-ids` and, once its pull
-     request is merged, `openspec/changes/wire-director-inputs-into-simulation`
-     when the user approves.
+   - Archive `openspec/changes/add-playable-time-and-ids` when the user
+     approves. (`wire-director-inputs-into-simulation` was archived on
+     2026-11-06.)
    - Add the small adapter that lets `scripts/run_world.py` start a
      template-created run (`ensure_run_world_data` requires a base world
      directory). See `docs/director_world.md`.
@@ -169,8 +169,8 @@ These were discussed on 2026-10-31. None of them is decided.
 
 ## Known Issues in Older Code
 
-The three issues listed here earlier are fixed on
-`feature/director-inputs-and-prototype-fixes` (the pull request into `develop`):
+The three issues listed here earlier were fixed in
+[PR #7](https://github.com/EUVUD/agenttown_demo/pull/7), merged into `develop`:
 
 - Director results are consumed by the weekly loop of template-created runs
   (prompt context, public events, arranged encounters, application log).
@@ -179,8 +179,9 @@ The three issues listed here earlier are fixed on
 - Visualization snapshots are labelled with the latest recorded simulation time
   and refreshed at the end of every week.
 
-The change is specified in `openspec/changes/wire-director-inputs-into-simulation/`
-and documented in `docs/director_world.md`. It is not archived. `scripts/run_world.py`
+The change was specified in `openspec/changes/archive/2026-11-06-wire-director-inputs-into-simulation/`;
+its requirements now live in `openspec/specs/director-events`, `dynamic-character-entry`,
+and `visualization-state`. It is documented in `docs/director_world.md`. `scripts/run_world.py`
 still cannot start a template-created run directly; that adapter is the next gap.
 
 `docs/refactor_review.md` holds the full codebase review: reproduced bugs, contract
@@ -207,22 +208,19 @@ touched.
 
 ## Working Tree and Git
 
-The earlier handoff branch `feature/update-prototype-handoff` was rebase-merged
-into `develop`, so its remote branch is stale and can be deleted. This work lives
-on `feature/director-inputs-and-prototype-fixes`, rebased onto `develop` at
-`9ac4ac5`. It has three commits:
+PR #7 was rebase-merged into `develop`. It added the director-input wiring, the
+four prototype fixes, and `docs/refactor_review.md`. This handoff was last updated
+on `chore/archive-wire-director-inputs`, created from `develop` after that merge,
+which archives the OpenSpec change.
 
-- feat(director): feed director events into the weekly simulation
-- fix(prototype): resumable catch-up, secret-free snapshots, narrator screen,
-  per-world blueprint
-- docs: the refactor review and this handoff
+Verified for PR #7: 120 tests pass on Python 3.14.7 and the prototype tests pass on
+3.13.5; `openspec validate --all --strict` passes; CI passed on the pull request
+and on `develop` after the merge. Not run: the legacy runner smoke test (it needs
+`config.json` and a model) and any real-model play.
 
-Verified before the pull request: 120 tests pass on Python 3.14.7 and the prototype
-tests pass on 3.13.5; `openspec validate --all --strict` passes. Not run: the legacy
-runner smoke test (it needs `config.json` and a model) and any real-model play.
-
-The local branch `feature/update-prototype-handoff` still points at the old,
-pre-rebase commits and can be deleted once the pull request is merged.
+Stale branches that can be deleted: `feature/update-prototype-handoff`,
+`feature/fast-prototype`, and `feature/director-inputs-and-prototype-fixes`, locally
+and on `origin`.
 
 ## Suggested Skills
 

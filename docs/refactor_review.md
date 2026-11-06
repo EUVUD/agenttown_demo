@@ -40,7 +40,7 @@ Items under "Already fixed" are changed on the `feature/update-prototype-handoff
 | A prototype world broke when `world.json` changed after it was created | `prototype/engine.py`, `prototype/store.py` |
 | Week-end snapshots would have published the full body of private relationship notes | `src/world/visualization.py` |
 
-The behavior change is specified in `openspec/changes/wire-director-inputs-into-simulation/`.
+The behavior change was specified in `openspec/changes/archive/2026-11-06-wire-director-inputs-into-simulation/` and now lives in the main specs.
 
 ## 1. Bugs, ranked
 
