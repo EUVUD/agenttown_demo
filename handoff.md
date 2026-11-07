@@ -8,6 +8,10 @@ working title 明日回信 / Tomorrow's Reply. The GitHub repository is now
 `EUVUD/marginalia`; GitHub redirects the old URL. Agentopia is named only as the
 upstream project. The local WSL folder is still `~/agenttown_demo`.
 
+`CLAUDE.md` defines how the work runs from now on: the user opens separate
+architect, executor, and reviewer sessions that hand off through
+`handoff_architect.md`, `handoff_executor.md`, and `handoff_reviewer.md`.
+
 As of 2026-11-06 `develop` contains PRs #1 to #9, and nothing is unpushed.
 [PR #5](https://github.com/EUVUD/marginalia/pull/5)
 added a stdlib-only fast prototype of the first vertical slice under

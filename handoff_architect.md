@@ -1,6 +1,6 @@
 # Architect Session Handoff — Marginalia
 
-Read this first, then `handoff.md` (general state and environment), `GAME_DEVELOPMENT_PLAN.md` (roadmap), and `AGENTS.md` (rules). This file is for a session whose job is to decide architecture, not to write features.
+Read this first, then `handoff.md` (general state and environment), `GAME_DEVELOPMENT_PLAN.md` (roadmap), `AGENTS.md` (rules), and `CLAUDE.md` (the architect, executor, and reviewer session workflow). This file is for a session whose job is to decide architecture, not to write features.
 
 ## Your job
 
