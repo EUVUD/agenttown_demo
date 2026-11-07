@@ -14,7 +14,7 @@ A second pass then tried to reproduce every bug listed in section 1 against copi
 - **reproduced**: a script was run against a copy of the code and showed the failure.
 - **read**: established by reading or grep/AST analysis, not executed.
 
-Items under "Already fixed" are changed on the `feature/update-prototype-handoff` branch.
+Items under "Already fixed" shipped in PR #7 and are on `develop`.
 
 ## Already fixed
 
