@@ -2,11 +2,14 @@
 
 ## Current State
 
-`develop` is at `46d2c49` after [PR #5](https://github.com/EUVUD/agenttown_demo/pull/5)
-was squash-merged on 2026-10-31. PR #5 added a stdlib-only fast prototype of
-the first vertical slice under `prototype/`. Earlier merges (PR #1–#4)
-delivered the F0 foundation, CI/CD, and the D1.1 time and identity value
-objects. CI passed on the PR and on the merged `develop` commit.
+As of 2026-11-06 `develop` is at `6798c4e`. [PR #5](https://github.com/EUVUD/agenttown_demo/pull/5)
+added a stdlib-only fast prototype of the first vertical slice under
+`prototype/`. PR #6 updated this handoff. [PR #7](https://github.com/EUVUD/agenttown_demo/pull/7)
+wired director events into the weekly loop, fixed four prototype bugs, and added
+`docs/refactor_review.md`. PR #8 archived the director OpenSpec change. Earlier
+merges (PR #1–#4) delivered the F0 foundation, CI/CD, and the D1.1 time and
+identity value objects. CI passes on `develop`. The D1.1 OpenSpec change is
+archived in a local commit that is not pushed yet.
 
 `GAME_DEVELOPMENT_PLAN.md` is unchanged. F0.1–F0.5, the F0 gate, G0, and D1.1
 are checked, and D1.2 `WorldBlueprintV1` is the next unchecked item. The
@@ -24,7 +27,9 @@ Run `python3 -m prototype` from the repository root, then open
 - `--db PATH` keeps a separate save.
 - Saves default to `prototype/.data/`, which is git-ignored.
 - `--dev` allows the developer view: `?debug=1` then shows NPC secrets and her memories.
-  Without `--dev` no response carries secrets.
+  Without `--dev` no response carries the `debug` payload. The narrator's scene
+  text in the timeline is shown as written and is not screened, so it can carry a
+  secret the narrator wrote.
 
 `prototype/README.md` is the reference. Summary:
 
@@ -51,8 +56,8 @@ Run `python3 -m prototype` from the repository root, then open
 
 The loop:
 
-1. Chat may leave a pending influence. Chat output cannot change any state:
-   extra fields are dropped.
+1. Chat may leave a pending influence. Chat output cannot change relationships
+   or location; it can set her mood. Extra fields are dropped.
 2. Each slot is resolved by the narrator. The protagonist adopts, declines, or
    defers each pending influence with a reason, and the scene event's `causes`
    records which influences it considered.
@@ -75,15 +80,17 @@ Environment variables:
 ## Decisions That Matter Next
 
 - The prototype lives outside `server/` because the playable-runtime skeleton
-  spec says `server` must not load model credentials. When refactoring, move
-  pieces into `server/` deliberately, with OpenSpec changes, not by moving the
-  folder.
+  spec says the initial `server` package must not import model credentials. That
+  rule is about the skeleton; the roadmap gives model calls and the keyring to the
+  future sidecar. When refactoring, move pieces into `server/` deliberately, with
+  OpenSpec changes, not by moving the folder.
 - It uses only the standard library, so `requirements.lock` is untouched and it
   runs on Python 3.13 and 3.14.
 - The influence contract is the core rule to preserve: the player never edits
   state, and the protagonist decides. This maps to C4.4, C4.5, and gate G4.
-- The knowledge boundary is enforced only when prompts are built. Checking
-  model output for leaks is still to do (M9).
+- The knowledge boundary is enforced when prompts are built and, since PR #7,
+  by a screen on narrator output (`prototype/boundary.py`). The screen only
+  catches copied or lightly edited secret text; the real fix is M9.1.
 - `prototype/README.md` ends with "Shortcuts to pay back when refactoring".
   Treat that list as the refactor backlog. Mapping to the roadmap:
 
@@ -99,12 +106,13 @@ Environment variables:
 
 ## Verification Already Performed
 
-- `tests/test_prototype.py` passed 10 tests on Python 3.13.5 and 3.14.7. These
-  tests run offline and are deterministic.
-- The full suite passed 43 tests on Python 3.14.7, in a venv synced from
-  `requirements.lock`.
-- PR #5 CI passed all three jobs: Python tests, OpenSpec validation, and Godot
-  GdUnit4. The post-merge `develop` run for `46d2c49` also passed.
+- When the prototype was added (PR #5), its 10 tests passed on Python 3.13.5 and
+  3.14.7 and the full suite of 43 passed. Today the prototype has 56 tests
+  (`test_prototype.py` and `test_prototype_boundary.py`) and the full suite has
+  120, all passing on Python 3.14.7. These tests run offline and are
+  deterministic.
+- CI passes all three jobs on `develop`: Python tests, OpenSpec validation, and
+  Godot GdUnit4.
 - A manual run with the fake model worked end to end through the HTTP API:
   chat, four slots, a simulated three-day absence, and the absence letter.
   Headless Chrome screenshots at 1440px wide confirmed the UI renders.
@@ -129,10 +137,11 @@ Environment variables:
    start refactoring it into roadmap slices.
 3. If refactoring, start with D1.2: formalize `prototype/world.json` as
    `WorldBlueprintV1`, with legal and illegal fixtures.
-4. Older follow-ups are still open:
+4. Follow-ups:
    - Both OpenSpec changes that were waiting for approval
      (`add-playable-time-and-ids` and `wire-director-inputs-into-simulation`)
-     were archived on 2026-11-06.
+     were archived on 2026-11-06. The D1.1 archive is a local commit on
+     `chore/archive-playable-time-and-ids` that is not pushed.
    - Add the small adapter that lets `scripts/run_world.py` start a
      template-created run (`ensure_run_world_data` requires a base world
      directory). See `docs/director_world.md`.
@@ -210,17 +219,22 @@ touched.
 
 PR #7 was rebase-merged into `develop`. It added the director-input wiring, the
 four prototype fixes, and `docs/refactor_review.md`. This handoff was last updated
-on `chore/archive-wire-director-inputs`, created from `develop` after that merge,
-which archives the OpenSpec change.
+on `chore/archive-playable-time-and-ids`, created from `develop` after PRs #7
+and #8. Its one commit archives the D1.1 OpenSpec change and is not pushed; the
+edits to this handoff are not committed.
 
 Verified for PR #7: 120 tests pass on Python 3.14.7 and the prototype tests pass on
 3.13.5; `openspec validate --all --strict` passes; CI passed on the pull request
 and on `develop` after the merge. Not run: the legacy runner smoke test (it needs
 `config.json` and a model) and any real-model play.
 
-Stale branches that can be deleted: `feature/update-prototype-handoff`,
-`feature/fast-prototype`, and `feature/director-inputs-and-prototype-fixes`, locally
-and on `origin`.
+Branches that can be deleted on `origin`: the branches of merged PRs
+(`feature/add-ci-cd-pipeline`, `feature/d1-time-and-id`,
+`feature/f0-playable-foundation`, `feature/update-d1-handoff`,
+`feature/fast-prototype`, `feature/update-prototype-handoff`,
+`feature/director-inputs-and-prototype-fixes`, `chore/archive-wire-director-inputs`).
+The local `feature/update-prototype-handoff` is three commits ahead of its origin
+copy, but its content is already in `develop`, so it is safe to delete too.
 
 ## Suggested Skills
 
@@ -228,5 +242,5 @@ and on `origin`.
   and post-merge cleanup.
 - `openspec-explore`, `openspec-propose`, and `openspec-apply-change` when the
   prototype is refactored into roadmap slices, starting with D1.2.
-- `openspec-archive-change` for D1.1 once the user approves.
+- `openspec-archive-change` (both existing changes are already archived).
 - The `.claude/skills/` analysis skills target legacy simulation runs only.

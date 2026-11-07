@@ -38,7 +38,7 @@ every feature and is what the tests use, but its writing is canned.
 
 - **Chat** (`chat` call): she replies in character. If you suggest something, the
   reply carries an *influence* that is stored as pending. Chat output cannot touch
-  relationships, location, or any other state; extra fields are dropped.
+  relationships or location; it can set her mood. Extra fields are dropped.
 - **Advance a slot** (`slot` call): a narrator decides what she does. Pending
   influences are adopted, declined, or deferred by *her*, with a reason, and the
   scene event records which influences caused it.
