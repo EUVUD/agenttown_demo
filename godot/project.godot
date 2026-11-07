@@ -4,7 +4,7 @@ config_version=5
 
 [application]
 
-config/name="Tomorrow's Reply"
+config/name="Marginalia"
 run/main_scene="res://scenes/bootstrap.tscn"
 
 [editor_plugins]

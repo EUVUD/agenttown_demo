@@ -1,1 +1,1 @@
-"""Fast prototype of the Tomorrow's Reply play loop. See prototype/README.md."""
+"""Fast prototype of the Marginalia play loop. See prototype/README.md."""

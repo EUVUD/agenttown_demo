@@ -14,7 +14,16 @@ import pytest
 
 from prototype import boundary
 from prototype.engine import Game, NotFound, load_blueprint
-from prototype.llm import FakeProvider, LLMError, LLMRequest, Provider, extract_json
+from prototype.llm import (
+    AnthropicProvider,
+    FakeProvider,
+    LLMError,
+    LLMRequest,
+    OpenAICompatibleProvider,
+    Provider,
+    extract_json,
+    provider_from_env,
+)
 from prototype.store import Store
 from prototype.server import make_handler
 
@@ -847,3 +856,44 @@ def test_a_blueprint_this_build_cannot_read_is_rejected_at_start(tmp_path) -> No
 
     with pytest.raises(ValueError, match="blueprint_version"):
         Game(tmp_path / "world.db", FakeProvider(), future)
+
+
+# Provider selection from the environment -----------------------------------------------------
+
+
+def test_marginalia_variables_select_the_provider_and_model() -> None:
+    provider = provider_from_env(
+        env={"MARGINALIA_LLM": "openai", "MARGINALIA_MODEL": "m1", "OPENAI_API_KEY": "k"}
+    )
+
+    assert isinstance(provider, OpenAICompatibleProvider)
+    assert provider.model == "m1"
+
+
+def test_the_old_agenttown_variables_still_select_the_provider_and_model() -> None:
+    provider = provider_from_env(
+        env={"AGENTTOWN_LLM": "anthropic", "AGENTTOWN_MODEL": "m0", "ANTHROPIC_API_KEY": "k"}
+    )
+
+    assert isinstance(provider, AnthropicProvider)
+    assert provider.model == "m0"
+
+
+def test_marginalia_variables_win_over_the_old_names() -> None:
+    provider = provider_from_env(
+        env={
+            "MARGINALIA_LLM": "anthropic",
+            "AGENTTOWN_LLM": "fake",
+            "MARGINALIA_MODEL": "new",
+            "AGENTTOWN_MODEL": "old",
+            "ANTHROPIC_API_KEY": "k",
+        }
+    )
+
+    assert isinstance(provider, AnthropicProvider)
+    assert provider.model == "new"
+
+
+def test_a_missing_openai_model_names_the_marginalia_variable() -> None:
+    with pytest.raises(LLMError, match="MARGINALIA_MODEL"):
+        provider_from_env(env={"MARGINALIA_LLM": "openai", "OPENAI_API_KEY": "k"})

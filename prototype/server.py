@@ -46,7 +46,7 @@ def make_handler(game: Game, *, dev: bool = False) -> type[BaseHTTPRequestHandle
         return {"result": result, "state": snapshot(debug)}
 
     class Handler(BaseHTTPRequestHandler):
-        server_version = "TomorrowsReplyPrototype/0.1"
+        server_version = "MarginaliaPrototype/0.1"
         dev_enabled = dev
 
         def do_GET(self) -> None:
@@ -159,7 +159,7 @@ def _int(value: Any, default: int) -> int:
 def serve(game: Game, host: str = "127.0.0.1", port: int = 8765, *, dev: bool = False) -> None:
     game.current_world()
     httpd = ThreadingHTTPServer((host, port), make_handler(game, dev=dev))
-    print(f"明日回信 prototype: http://{host}:{port}  (model: {game.provider.label})", flush=True)
+    print(f"Marginalia prototype: http://{host}:{port}  (model: {game.provider.label})", flush=True)
     if dev:
         print("developer view enabled: ?debug=1 responses include NPC secrets", flush=True)
     try:

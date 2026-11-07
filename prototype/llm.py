@@ -109,12 +109,21 @@ class OpenAICompatibleProvider(Provider):
             raise LLMError("unexpected response shape from the provider") from None
 
 
+def _setting(env: Mapping[str, str], name: str) -> str | None:
+    """Read MARGINALIA_<name>, falling back to the project's old AGENTTOWN_<name>."""
+    return env.get(f"MARGINALIA_{name}") or env.get(f"AGENTTOWN_{name}")
+
+
 def provider_from_env(
     choice: str | None = None, env: Mapping[str, str] | None = None
 ) -> Provider:
-    """Pick a provider from AGENTTOWN_LLM (auto|anthropic|openai|fake) and keys."""
+    """Pick a provider from MARGINALIA_LLM (auto|anthropic|openai|fake) and keys.
+
+    The old AGENTTOWN_LLM and AGENTTOWN_MODEL names are still read when the new
+    ones are unset.
+    """
     env = os.environ if env is None else env
-    choice = (choice or env.get("AGENTTOWN_LLM") or "auto").strip().lower()
+    choice = (choice or _setting(env, "LLM") or "auto").strip().lower()
     if choice == "auto":
         if env.get("ANTHROPIC_API_KEY"):
             choice = "anthropic"
@@ -125,22 +134,22 @@ def provider_from_env(
     if choice == "anthropic":
         key = env.get("ANTHROPIC_API_KEY")
         if not key:
-            raise LLMError("AGENTTOWN_LLM=anthropic needs ANTHROPIC_API_KEY")
+            raise LLMError("MARGINALIA_LLM=anthropic needs ANTHROPIC_API_KEY")
         return AnthropicProvider(
             key,
-            env.get("AGENTTOWN_MODEL") or DEFAULT_ANTHROPIC_MODEL,
+            _setting(env, "MODEL") or DEFAULT_ANTHROPIC_MODEL,
             env.get("ANTHROPIC_BASE_URL") or DEFAULT_ANTHROPIC_BASE_URL,
         )
     if choice == "openai":
-        key, model = env.get("OPENAI_API_KEY"), env.get("AGENTTOWN_MODEL")
+        key, model = env.get("OPENAI_API_KEY"), _setting(env, "MODEL")
         if not key or not model:
-            raise LLMError("AGENTTOWN_LLM=openai needs OPENAI_API_KEY and AGENTTOWN_MODEL")
+            raise LLMError("MARGINALIA_LLM=openai needs OPENAI_API_KEY and MARGINALIA_MODEL")
         return OpenAICompatibleProvider(
             key, model, env.get("OPENAI_BASE_URL") or DEFAULT_OPENAI_BASE_URL
         )
     if choice == "fake":
         return FakeProvider()
-    raise LLMError(f"unknown AGENTTOWN_LLM value: {choice!r}")
+    raise LLMError(f"unknown MARGINALIA_LLM value: {choice!r}")
 
 
 def _post_json(
