@@ -1,11 +1,17 @@
-# Tomorrow's Reply — Handoff
+# Marginalia — Handoff
 
 ## Current State
 
+On 2026-11-06 the project was renamed **Marginalia**. Its earlier names were
+`agenttown_demo` (the repository), `AGENTTOWN_*` (environment variables), and the
+working title 明日回信 / Tomorrow's Reply. The GitHub repository is now
+`EUVUD/marginalia`; GitHub redirects the old URL. Agentopia is named only as the
+upstream project. The local WSL folder is still `~/agenttown_demo`.
+
 As of 2026-11-06 `develop` contains PRs #1 to #9, and nothing is unpushed.
-[PR #5](https://github.com/EUVUD/agenttown_demo/pull/5)
+[PR #5](https://github.com/EUVUD/marginalia/pull/5)
 added a stdlib-only fast prototype of the first vertical slice under
-`prototype/`. PR #6 updated this handoff. [PR #7](https://github.com/EUVUD/agenttown_demo/pull/7)
+`prototype/`. PR #6 updated this handoff. [PR #7](https://github.com/EUVUD/marginalia/pull/7)
 wired director events into the weekly loop, fixed four prototype bugs, and added
 `docs/refactor_review.md`. PR #8 archived the director OpenSpec change. PR #9
 archived the D1.1 OpenSpec change (`add-playable-time-and-ids`), added
@@ -75,11 +81,14 @@ per missed day plus 1 letter.
 
 Environment variables:
 
-- `AGENTTOWN_LLM`: `auto`, `anthropic`, `openai`, or `fake`.
+- `MARGINALIA_LLM`: `auto`, `anthropic`, `openai`, or `fake`.
 - `ANTHROPIC_API_KEY`.
 - `OPENAI_API_KEY` and `OPENAI_BASE_URL`.
-- `AGENTTOWN_MODEL`: defaults to `claude-opus-5-5` for Anthropic and is
+- `MARGINALIA_MODEL`: defaults to `claude-opus-5-5` for Anthropic and is
   required for `openai`.
+
+The old names `AGENTTOWN_LLM` and `AGENTTOWN_MODEL` are still read when the new
+ones are unset.
 
 ## Decisions That Matter Next
 
@@ -156,7 +165,18 @@ Environment variables:
 
 ## Open Product Questions
 
-These were discussed on 2026-10-31. None of them is decided.
+**Name.** Decided on 2026-11-06: Marginalia. The player's words are notes in the
+margin of the protagonist's day; the protagonist reads them and decides. Still
+open:
+
+- The English store title needs a formal trademark search before release (P11),
+  in USPTO classes 9 and 41 and at CNIPA. Steam already lists two games called
+  Marginalia (apps 889280 and 4559530). A web search found no "MARGINALIA" mark
+  for games, but found a 2021 USPTO filing for "MARGINAL" that covers game
+  software.
+- No Chinese name is chosen. 旁批 was proposed.
+
+The questions below were discussed on 2026-10-31. None of them is decided.
 
 - **Depth.** One suggestion: close one loop and measure it, by moving the
   M9.6/G9 evaluation earlier. The metrics would be:
@@ -182,7 +202,7 @@ These were discussed on 2026-10-31. None of them is decided.
 ## Known Issues in Older Code
 
 The three issues listed here earlier were fixed in
-[PR #7](https://github.com/EUVUD/agenttown_demo/pull/7), merged into `develop`:
+[PR #7](https://github.com/EUVUD/marginalia/pull/7), merged into `develop`:
 
 - Director results are consumed by the weekly loop of template-created runs
   (prompt context, public events, arranged encounters, application log).
@@ -206,7 +226,8 @@ real-model output for paraphrased secrets when you first play.
 
 ## Environment Notes
 
-This session ran in a WSL Ubuntu clone at `~/agenttown_demo`. The `.venv` and
+This session ran in a WSL Ubuntu clone at `~/agenttown_demo` (the folder kept
+its old name after the rename; its `origin` points to `EUVUD/marginalia`). The `.venv` and
 stashes mentioned in the previous handoff are on the macOS machine and were not
 touched.
 

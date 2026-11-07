@@ -1,3 +1,29 @@
+# Marginalia
+
+Marginalia is a playable AI life-simulation game in early development. You talk
+with one protagonist who lives in a small simulated world. You cannot change that
+world directly: the protagonist reads what you say like notes in the margin of
+the day, then decides what to do. The world keeps running while you are away, and
+the protagonist writes to you when you come back.
+
+- Roadmap: [`GAME_DEVELOPMENT_PLAN.md`](GAME_DEVELOPMENT_PLAN.md) (in Chinese).
+- Playable prototype: [`prototype/README.md`](prototype/README.md); run it with
+  `python3 -m prototype`.
+- Godot client: `godot/` (bootstrap scene only).
+
+## Built on Agentopia
+
+This repository is a fork of [Neph0s/Agentopia](https://github.com/Neph0s/Agentopia).
+The legacy simulation in `src/` and `scripts/run_world.py`, with its weekly loop,
+environment model, and life reward, is Agentopia's work. This fork adds the
+director layer (`src/world/director*.py`, `data/world_templates/`), the playable
+runtime (`server/`, `godot/`), and the prototype (`prototype/`).
+
+The rest of this README documents the Agentopia framework, which this repository
+keeps as its research runner. The translations linked below cover that part only.
+
+---
+
 # Agentopia
 
 **English** | [简体中文](docs/README.zh.md) | [日本語](docs/README.ja.md) | [한국어](docs/README.ko.md)
@@ -82,7 +108,7 @@ python scripts/run_world.py --world apartment
 
 ## Director-Style World Backend
 
-Agentopia also includes an opt-in backend layer for building creator-facing
+This fork adds an opt-in backend layer for building creator-facing
 "director-style cultivation worlds." This layer does not replace the research
 simulation runner. It adds structured contracts for future game or visualization
 clients such as Godot:

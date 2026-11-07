@@ -15,7 +15,7 @@ DEFAULT_DB = Path(__file__).with_name(".data") / "world.db"
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m prototype", description="Run the Tomorrow's Reply fast prototype."
+        prog="python -m prototype", description="Run the Marginalia fast prototype."
     )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
@@ -23,7 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--llm",
         choices=["auto", "anthropic", "openai", "fake"],
-        help="model provider; overrides AGENTTOWN_LLM (default: auto)",
+        help="model provider; overrides MARGINALIA_LLM (default: auto)",
     )
     parser.add_argument(
         "--dev",

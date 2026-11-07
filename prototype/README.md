@@ -1,4 +1,4 @@
-# Tomorrow's Reply — fast prototype
+# Marginalia — fast prototype
 
 A playable, deliberately rough version of the first vertical slice in
 `GAME_DEVELOPMENT_PLAN.md`: one protagonist (林夏) and four NPCs in a fixed school
@@ -20,16 +20,19 @@ use `--db PATH` to keep separate saves.
 
 ## Models
 
-`AGENTTOWN_LLM` selects the provider; the default `auto` uses Anthropic when
+`MARGINALIA_LLM` selects the provider; the default `auto` uses Anthropic when
 `ANTHROPIC_API_KEY` is set, otherwise an OpenAI-compatible endpoint when
 `OPENAI_API_KEY` is set, otherwise the offline fake.
 
 | Variable | Used for |
 |---|---|
-| `AGENTTOWN_LLM` | `auto`, `anthropic`, `openai`, or `fake` |
+| `MARGINALIA_LLM` | `auto`, `anthropic`, `openai`, or `fake` |
 | `ANTHROPIC_API_KEY` | Anthropic Messages API |
 | `OPENAI_API_KEY`, `OPENAI_BASE_URL` | Any OpenAI-compatible endpoint (vLLM, Ollama, hosted APIs) |
-| `AGENTTOWN_MODEL` | Model name; required for `openai`, defaults to `claude-opus-5-5` for `anthropic` |
+| `MARGINALIA_MODEL` | Model name; required for `openai`, defaults to `claude-opus-5-5` for `anthropic` |
+
+The project was called agenttown before it was renamed Marginalia. The old names
+`AGENTTOWN_LLM` and `AGENTTOWN_MODEL` are still read when the new ones are unset.
 
 The fake model is deterministic and rule-based. It is enough to click through
 every feature and is what the tests use, but its writing is canned.

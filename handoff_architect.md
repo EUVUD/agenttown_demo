@@ -1,4 +1,4 @@
-# Architect Session Handoff — Tomorrow's Reply
+# Architect Session Handoff — Marginalia
 
 Read this first, then `handoff.md` (general state and environment), `GAME_DEVELOPMENT_PLAN.md` (roadmap), and `AGENTS.md` (rules). This file is for a session whose job is to decide architecture, not to write features.
 
@@ -70,7 +70,7 @@ These came from the independent review. I checked the call counts in 10 against 
 12. **Two incompatible fakes.** `tests/support/fakes.py` has `FakeLLM`, which is keyed by the exact prompt string. The prototype has `FakeProvider` (keyed by task, takes an `LLMRequest`) and the tests add a `ScriptedProvider`. Gates G8 and O8.3 need one deterministic substitute that both the roadmap tests and the prototype can use.
 13. **Discovery integrity.** The narrator's output can declare that she discovered an NPC's secret, and the player's chat and influence text enter the prompts. The reviewer's concern is that a player can steer the narrator into declaring a discovery that unlocks a secret. The validator (`prototype/engine.py`, near line 938) only requires a known NPC id and a non-empty fact text, and `boundary.Screen.for_output` only drops a discovery whose fact carries another NPC's secret. Nothing checks a discovery against what happened in the scene. Not reproduced; worth a test with a scripted provider before relying on the boundary.
 
-Open product questions from `handoff.md` are not decided: measure early (move the M9.6 evaluation forward and defer Temporal, Postgres, outbox, WebSocket), the project's uniqueness (parked by the user; raise only if asked), and how to credit upstream work versus this fork.
+The project name is decided: Marginalia (2026-11-06; see `handoff.md`, "Open Product Questions", for the store-title trademark check and the missing Chinese name). The other open product questions from `handoff.md` are not decided: measure early (move the M9.6 evaluation forward and defer Temporal, Postgres, outbox, WebSocket), the project's uniqueness (parked by the user; raise only if asked), and how to credit upstream work versus this fork.
 
 ## Review of this handoff
 
@@ -120,7 +120,7 @@ Recreate the venv: `uv venv --python 3.14.7 .venv && uv pip sync --python .venv/
 
 - Importing `src.world.world` or `src.utils` creates `logs/` next to the code and, until a config is loaded, needs `config.json`. Run such experiments in a copy. `logs/` is git-ignored now.
 - The legacy code resolves `data/...` relative to the current directory, so it only works from the repository root.
-- `EUVUD/agenttown_demo` is a fork of `Neph0s/Agentopia`. Run every `gh pr` command with `--repo EUVUD/agenttown_demo`, or `gh` targets the upstream repository.
+- `EUVUD/marginalia` (called `EUVUD/agenttown_demo` until 2026-11-06) is a fork of `Neph0s/Agentopia`. Run every `gh pr` command with `--repo EUVUD/marginalia`, or `gh` targets the upstream repository.
 - Opening a PR or pushing is an outward write. The permission system blocked one `gh pr create` until the user said so explicitly. Ask first.
 - No git identity is configured. Earlier commits passed `-c user.name` and `-c user.email` on the command line; reuse the author of the latest `develop` commit (`git log -1 --format='%an %ae' origin/develop`).
 - `docs/ci_cd.md` asks for rebase-and-merge into `develop`, with one feature branch per change. Branch protection for `develop` and `main` is still unconfirmed.

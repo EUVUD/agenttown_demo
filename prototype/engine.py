@@ -1,4 +1,4 @@
-"""Game rules for the Tomorrow's Reply prototype.
+"""Game rules for the Marginalia prototype.
 
 The player never edits world state. Chat can only leave a pending influence on the
 protagonist; her own slot decisions adopt, decline or defer it, and every change

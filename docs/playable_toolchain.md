@@ -1,6 +1,6 @@
 # Playable Toolchain Baseline
 
-This document defines the F0.1 development baseline for **Tomorrow's Reply**.
+This document defines the F0.1 development baseline for **Marginalia**.
 The machine-readable source of truth is [`toolchain.toml`](../toolchain.toml).
 
 ## F0.1 Scope
