@@ -8,12 +8,11 @@ Decide how the playable game's runtime should be built, and in what order, using
 
 ## State at handoff
 
-- `develop` is at `6798c4e`. PR #7 (director wiring, four prototype fixes, refactor review) and PR #8 (archive of the director change) are merged. CI passes on `develop`.
-- One local commit is not pushed: `f70c1f9` on `chore/archive-playable-time-and-ids`, which archives `add-playable-time-and-ids` and creates the main spec `playable-time-and-identity`. No PR yet.
+- `develop` contains PRs #1 to #9. PR #7 (director wiring, four prototype fixes, refactor review), PR #8 (archive of the director change), and PR #9 (archive of `add-playable-time-and-ids`, which created the main spec `playable-time-and-identity`, plus this file and the corrections listed below) are merged. CI passes on `develop`. Nothing is unpushed. The remote branches of the merged PRs were deleted on 2026-11-06; `origin` has only `main` and `develop`.
 - 120 tests pass on Python 3.14.7. The prototype tests also pass on 3.13.5. `openspec validate --all --strict` passes for 8 specs. No OpenSpec change is active.
 - Roadmap progress: F0, G0, and D1.1 are done. D1.2 `WorldBlueprintV1` is the next unchecked step. The prototype ticked nothing, because no acceptance criterion was verified against it.
 - Never run: any real model call, the legacy runner smoke test (needs `config.json`), the Godot client beyond its bootstrap scene.
-- Uncommitted in the working tree: this file (untracked) and edits to `handoff.md`, `prototype/README.md`, and `docs/refactor_review.md` that correct statements an independent review showed to be wrong. Nothing has been pushed since `develop` moved to `6798c4e`.
+- This file and the corrections to `handoff.md`, `prototype/README.md`, and `docs/refactor_review.md` (statements an independent review showed to be wrong) are part of PR #9.
 - This handoff was itself reviewed by an independent read-only session (Opus). Its findings are in "Review of this handoff" below. The wrong statements it found are already corrected here; the recommendations are the reviewer's, not the user's decisions.
 
 ## The three code bases
@@ -126,4 +125,5 @@ Recreate the venv: `uv venv --python 3.14.7 .venv && uv pip sync --python .venv/
 - No git identity is configured. Earlier commits passed `-c user.name` and `-c user.email` on the command line; reuse the author of the latest `develop` commit (`git log -1 --format='%an %ae' origin/develop`).
 - `docs/ci_cd.md` asks for rebase-and-merge into `develop`, with one feature branch per change. Branch protection for `develop` and `main` is still unconfirmed.
 - `openspec archive` leaves a `TBD` Purpose in a main spec it creates from a delta without a Purpose. Fill it in by hand.
-- Branches of merged PRs that can be deleted on `origin`: `feature/add-ci-cd-pipeline`, `feature/d1-time-and-id`, `feature/f0-playable-foundation`, `feature/update-d1-handoff`, `feature/fast-prototype`, `feature/update-prototype-handoff`, `feature/director-inputs-and-prototype-fixes`, `chore/archive-wire-director-inputs`. The local `feature/update-prototype-handoff` is three commits ahead of its origin copy but its content is already in `develop`.
+- The remote branches of PRs #1 to #9 are deleted. A clone may still hold the local branches. Rebase merges change hashes, so `git branch -d` refuses them; delete with `git branch -D` only after `git cherry origin/develop <branch>` shows no `+` line. The WSL clone's local `feature/update-prototype-handoff` shows one `+` line because its tip is an earlier draft of a commit that is in `develop`.
+- Do not write the `develop` commit hash into a handoff. A rebase merge rewrites it, and the handoff is stale the moment it merges. Name the PRs instead.

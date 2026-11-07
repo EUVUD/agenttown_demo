@@ -2,14 +2,18 @@
 
 ## Current State
 
-As of 2026-11-06 `develop` is at `6798c4e`. [PR #5](https://github.com/EUVUD/agenttown_demo/pull/5)
+As of 2026-11-06 `develop` contains PRs #1 to #9, and nothing is unpushed.
+[PR #5](https://github.com/EUVUD/agenttown_demo/pull/5)
 added a stdlib-only fast prototype of the first vertical slice under
 `prototype/`. PR #6 updated this handoff. [PR #7](https://github.com/EUVUD/agenttown_demo/pull/7)
 wired director events into the weekly loop, fixed four prototype bugs, and added
-`docs/refactor_review.md`. PR #8 archived the director OpenSpec change. Earlier
-merges (PR #1–#4) delivered the F0 foundation, CI/CD, and the D1.1 time and
-identity value objects. CI passes on `develop`. The D1.1 OpenSpec change is
-archived in a local commit that is not pushed yet.
+`docs/refactor_review.md`. PR #8 archived the director OpenSpec change. PR #9
+archived the D1.1 OpenSpec change (`add-playable-time-and-ids`), added
+`handoff_architect.md` for a session that decides the runtime architecture, and
+corrected statements in the handoffs that an independent review showed to be
+wrong. Earlier merges (PR #1–#4) delivered the F0 foundation, CI/CD, and the D1.1
+time and identity value objects. CI passes on `develop`. No OpenSpec change is
+active.
 
 `GAME_DEVELOPMENT_PLAN.md` is unchanged. F0.1–F0.5, the F0 gate, G0, and D1.1
 are checked, and D1.2 `WorldBlueprintV1` is the next unchecked item. The
@@ -140,16 +144,15 @@ Environment variables:
 4. Follow-ups:
    - Both OpenSpec changes that were waiting for approval
      (`add-playable-time-and-ids` and `wire-director-inputs-into-simulation`)
-     were archived on 2026-11-06. The D1.1 archive is a local commit on
-     `chore/archive-playable-time-and-ids` that is not pushed.
+     were archived on 2026-11-06 (PRs #8 and #9). Both are merged into `develop`.
    - Add the small adapter that lets `scripts/run_world.py` start a
      template-created run (`ensure_run_world_data` requires a base world
      directory). See `docs/director_world.md`.
    - Confirm branch protection for `develop` and `main` (see
      `docs/ci_cd.md`).
-5. Cleanup: the squash-merged `feature/fast-prototype` branch and the
-   rebase-merged `feature/update-prototype-handoff` branch still exist locally
-   and on `origin`.
+5. Cleanup: the remote branches of PRs #1 to #9 were deleted on 2026-11-06, so
+   `origin` has only `main` and `develop`. See "Working Tree and Git" for the local
+   branches that remain in the WSL clone.
 
 ## Open Product Questions
 
@@ -194,11 +197,12 @@ and `visualization-state`. It is documented in `docs/director_world.md`. `script
 still cannot start a template-created run directly; that adapter is the next gap.
 
 `docs/refactor_review.md` holds the full codebase review: reproduced bugs, contract
-gaps, and ranked refactors. The four prototype bugs found there are fixed on this
-branch: catch-up is resumable, snapshots carry no secrets unless the server runs with
-`--dev`, narrator output is screened for undiscovered secrets, and each world keeps
-the blueprint it was created with. The leak screen only catches copied or lightly
-edited text, so check real-model output for paraphrased secrets when you first play.
+gaps, and ranked refactors. The four prototype bugs found there are fixed in PR #7:
+catch-up is resumable, the `debug` payload with NPC secrets is only returned by a
+server started with `--dev`, narrator output is screened for undiscovered secrets,
+and each world keeps the blueprint it was created with. The leak screen only catches
+copied or lightly edited text, and the timeline shows scene text unscreened, so check
+real-model output for paraphrased secrets when you first play.
 
 ## Environment Notes
 
@@ -217,24 +221,29 @@ touched.
 
 ## Working Tree and Git
 
-PR #7 was rebase-merged into `develop`. It added the director-input wiring, the
-four prototype fixes, and `docs/refactor_review.md`. This handoff was last updated
-on `chore/archive-playable-time-and-ids`, created from `develop` after PRs #7
-and #8. Its one commit archives the D1.1 OpenSpec change and is not pushed; the
-edits to this handoff are not committed.
+PRs #7, #8, and #9 were rebase-merged into `develop`. PR #7 added the director-input
+wiring, the four prototype fixes, and `docs/refactor_review.md`. PR #8 and PR #9
+archived the two OpenSpec changes. PR #9 also added `handoff_architect.md` and
+corrected this handoff. Each PR used one feature or chore branch and `develop` as its base.
 
 Verified for PR #7: 120 tests pass on Python 3.14.7 and the prototype tests pass on
 3.13.5; `openspec validate --all --strict` passes; CI passed on the pull request
-and on `develop` after the merge. Not run: the legacy runner smoke test (it needs
-`config.json` and a model) and any real-model play.
+and on `develop` after the merge. After PR #9, which changed documentation and the
+archived OpenSpec change only, 120 tests still pass on 3.14.7 and CI passed on
+`develop`; the prototype tests were not rerun on 3.13.5. Not run: the legacy runner
+smoke test (it needs `config.json` and a model) and any real-model play.
 
-Branches that can be deleted on `origin`: the branches of merged PRs
-(`feature/add-ci-cd-pipeline`, `feature/d1-time-and-id`,
-`feature/f0-playable-foundation`, `feature/update-d1-handoff`,
-`feature/fast-prototype`, `feature/update-prototype-handoff`,
-`feature/director-inputs-and-prototype-fixes`, `chore/archive-wire-director-inputs`).
-The local `feature/update-prototype-handoff` is three commits ahead of its origin
-copy, but its content is already in `develop`, so it is safe to delete too.
+Branches: on 2026-11-06 the remote branches of PRs #1 to #9 were deleted, after
+`git cherry origin/develop origin/<branch>` showed that every patch was already in
+`develop`. `origin` has only `main` and `develop`. In the WSL clone five local branches
+remain whose remote copies are gone: `chore/archive-playable-time-and-ids`,
+`chore/archive-wire-director-inputs`, `feature/director-inputs-and-prototype-fixes`,
+`feature/fast-prototype`, and `feature/update-prototype-handoff`. Rebase merges change
+commit hashes, so `git branch -d` refuses to delete them; use `git branch -D` after
+`git cherry origin/develop <branch>` shows no `+` line. The tip of the local
+`feature/update-prototype-handoff` is an earlier draft of the `docs: add the codebase
+refactor review` commit that is in `develop`, so `git cherry` shows one `+` line for
+it; that content is superseded.
 
 ## Suggested Skills
 
